@@ -4,8 +4,7 @@ COVERAGEOUT := coverage.out
 .DEFAULT_GOAL := check
 
 ifndef GOBIN
-export GOBIN=$(GOPATH)/bin
-GOBIN := $(GOBIN)
+GOBIN := $(shell echo "$${GOPATH%%:*}/bin")
 endif
 
 LINT := $(GOBIN)/golint
