@@ -749,9 +749,9 @@ func printBuild(build *circleci.Build, i int, verbose bool) {
 		}
 
 		if verbose && action.HasOutput {
-			outputs, err := Client.GetActionOutput(action)
+			outputs, err := Client.GetActionOutputs(action)
 			if err != nil {
-				fmt.Println("error retrieving action output: %s", err)
+				fmt.Fprintf(os.Stderr, "error retrieving action output: %s\n", err)
 			}
 			for _, output := range outputs {
 				fmt.Println(output.Message)

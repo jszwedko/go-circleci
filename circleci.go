@@ -20,6 +20,16 @@ var (
 	defaultBaseURL = &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1/"}
 )
 
+// APIError represents an error from CircleCI
+type APIError struct {
+	HTTPStatusCode int
+	Message        string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("%d: %s", e.HTTPStatusCode, e.Message)
+}
+
 // Client is a CircleCI client
 // Its zero value is a usable client for examining public CircleCI repositories
 type Client struct {
@@ -83,7 +93,7 @@ func (c *Client) request(method, path string, responseStruct interface{}, params
 	if resp.StatusCode >= 300 {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("unexpected status code from CircleCI: %d, unable to read response", resp.StatusCode)
+			return &APIError{HTTPStatusCode: resp.StatusCode, Message: "unable to parse response: %s"}
 		}
 
 		if len(body) > 0 {
@@ -92,12 +102,15 @@ func (c *Client) request(method, path string, responseStruct interface{}, params
 			}{}
 			err = json.Unmarshal(body, &message)
 			if err != nil {
-				return fmt.Errorf("unexpected status code from CircleCI: %d, unable to parse response: %s", resp.StatusCode, string(body))
+				return &APIError{
+					HTTPStatusCode: resp.StatusCode,
+					Message:        fmt.Sprintf("unable to parse API response: %s", err),
+				}
 			}
-			return fmt.Errorf(message.Message)
+			return &APIError{HTTPStatusCode: resp.StatusCode, Message: message.Message}
 		}
 
-		return fmt.Errorf("unexpected status code from CircleCI: %d", resp.StatusCode)
+		return &APIError{HTTPStatusCode: resp.StatusCode}
 	}
 
 	if responseStruct != nil {
@@ -135,7 +148,7 @@ func (c *Client) ListProjects() ([]*Project, error) {
 }
 
 // GetProject retrieves a specific project
-// Requires the user to be watching the specified project
+// Returns nil of the project is not in the list of watched projects
 func (c *Client) GetProject(account, repo string) (*Project, error) {
 	projects, err := c.ListProjects()
 	if err != nil {
@@ -182,7 +195,7 @@ func (c *Client) recentBuilds(path string, params url.Values, limit, offset int)
 
 		offset += len(builds)
 		limit -= len(builds)
-		if len(builds) == 0 || limit == 0 {
+		if len(builds) < queryLimit || limit == 0 {
 			break
 		}
 	}
@@ -332,9 +345,9 @@ func (c *Client) AddSSHKey(account, repo, hostname, privateKey string) error {
 	return c.request("POST", fmt.Sprintf("project/%s/%s/ssh-key", account, repo), nil, nil, key)
 }
 
-// GetActionOutput fetches the output for the given action
+// GetActionOutputs fetches the output for the given action
 // If the action has no output, returns nil
-func (c *Client) GetActionOutput(a *Action) ([]*Output, error) {
+func (c *Client) GetActionOutputs(a *Action) ([]*Output, error) {
 	if !a.HasOutput || a.OutputURL == "" {
 		return nil, nil
 	}
