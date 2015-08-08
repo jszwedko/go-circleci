@@ -8,4 +8,5 @@ Currently a work-in-progress, so please see:
 
 To install the CLI (this will change once things have stabilized):
 - `git clone github.braintreeps.com/jszwedko/circleci $GOPATH/src/github.braintreeps.com/jszwedko/circleci`
-- `go install github.braintreeps.com/jszwedko/circleci/...`
+- `cd $GOPATH/src/github.braintreeps.com/jszwedko/circleci`
+- `make install`
