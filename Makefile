@@ -9,7 +9,7 @@ endif
 
 LINT := $(GOBIN)/golint
 
-$(LINT): ; @go get -v github.com/golang/lint/golint
+$(LINT): ; @go get github.com/golang/lint/golint
 
 .PHONY: build
 build:
