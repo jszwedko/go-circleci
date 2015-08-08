@@ -13,29 +13,31 @@ import (
 )
 
 const (
-	// DefaultEndpoint is the canonical CircleCI endpoint
-	DefaultEndpoint = "https://circleci.com/api/v1"
-	queryLimit      = 100 // maximum that CircleCI allows
+	queryLimit = 100 // maximum that CircleCI allows
+)
+
+var (
+	defaultBaseURL = &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1/"}
 )
 
 // Client is a CircleCI client
 // Its zero value is a usable client for examining public CircleCI repositories
 type Client struct {
-	Endpoint   string       // CircleCI endpoint (defaults to DefaultEndpoint)
+	BaseURL    *url.URL     // CircleCI API endpoint (defaults to DefaultEndpoint)
 	Token      string       // CircleCI API token (needed for private repositories and mutative actions)
 	HTTPClient *http.Client // HTTPClient to use for connecting to CircleCI (defaults to http.DefaultClient)
 }
 
-func (c *Client) endpoint() string {
-	if c.endpoint() == "" {
-		return DefaultEndpoint
+func (c *Client) baseURL() *url.URL {
+	if c.BaseURL == nil {
+		return defaultBaseURL
 	}
 
-	return c.endpoint()
+	return c.BaseURL
 }
 
 func (c *Client) client() *http.Client {
-	if c.client() == nil {
+	if c.HTTPClient == nil {
 		return http.DefaultClient
 	}
 
@@ -54,7 +56,9 @@ func (c *Client) request(method, path string, responseStruct interface{}, params
 	}
 	params.Add("circle-token", c.Token)
 
-	req, err := http.NewRequest(method, fmt.Sprintf("%s/%s?%s", c.endpoint(), path, params.Encode()), nil)
+	u := c.baseURL().ResolveReference(&url.URL{Path: path, RawQuery: params.Encode()})
+
+	req, err := http.NewRequest(method, u.String(), nil)
 	if err != nil {
 		return err
 	}

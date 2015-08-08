@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -122,9 +123,13 @@ func main() {
 		},
 	}
 	app.Before = func(c *cli.Context) (err error) {
+		baseURL, err := url.Parse(c.String("host") + "/api/v1/")
+		if err != nil {
+			return err
+		}
 		Client = &circleci.Client{
-			Token:    c.String("token"),
-			Endpoint: c.String("host") + "/api/v1",
+			Token:   c.String("token"),
+			BaseURL: baseURL,
 		}
 		return nil
 	}
