@@ -2,7 +2,6 @@ dependencies:
   override:
   # Remove cached Go sources
   - rm -rf $HOME/.go_workspace
-  - ./scripts/bootstrap
 test:
   override:
   - make check
