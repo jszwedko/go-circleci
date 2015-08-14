@@ -1,12 +1,13 @@
-## circleci
+## go-circleci
 
-Go library and CLI for interacting with CircleCI's API.
+Go library for interacting with [CircleCI's API](https://circleci.com/docs/api).
 
-Currently a work-in-progress, so please see:
-- `godoc github.braintreeps.com/jszwedko/circleci` for API usage
-- `circleci -h` for the current CLI usage
+For the CLI that uses this library, please see
+[circle-cli](github.braintreeps.com/jszwedko/circleci-cli).
 
-To install the CLI (this will change once things have stabilized):
-- `git clone github.braintreeps.com/jszwedko/circleci $GOPATH/src/github.braintreeps.com/jszwedko/circleci`
-- `cd $GOPATH/src/github.braintreeps.com/jszwedko/circleci`
-- `make install`
+Currently in alpha, so the library API may change -- please use your favorite
+Go dependency management solution. All API endpoints are currently supported.
+
+See `godoc github.braintreeps.com/jszwedko/go-circleci` for API usage.
+
+Feature requests and issues welcome!

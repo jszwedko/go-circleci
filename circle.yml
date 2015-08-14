@@ -4,7 +4,8 @@ dependencies:
   - rm -rf $HOME/.go_workspace
 test:
   override:
-  - make check
+  - go vet ./...
+  - go test ./...
 experimental:
   notify:
     branches:
