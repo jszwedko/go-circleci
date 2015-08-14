@@ -1,4 +1,4 @@
-## go-circleci [![GoDoc](https://godoc.org/github.com/jszwedko/go-circleci?status.svg)](http://godoc.org/github.com/jszwedko/go-circleci)
+## go-circleci [![GoDoc](https://godoc.org/github.com/jszwedko/go-circleci?status.svg)](http://godoc.org/github.com/jszwedko/go-circleci) [![Circle CI](https://circleci.com/gh/jszwedko/go-circleci.svg?style=svg)](https://circleci.com/gh/jszwedko/go-circleci)
 
 Go library for interacting with [CircleCI's API](https://circleci.com/docs/api).
 
