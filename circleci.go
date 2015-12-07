@@ -78,6 +78,7 @@ func (c *Client) request(method, path string, responseStruct interface{}, params
 		if err != nil {
 			return err
 		}
+
 		req.Body = nopCloser{bytes.NewBuffer(b)}
 	}
 
@@ -264,6 +265,21 @@ func (c *Client) ListTestMetadata(account, repo string, buildNum int) ([]*TestMe
 	return metadata.Tests, nil
 }
 
+// AddSSHUser adds the user associated with the API token to the list of valid
+// SSH users for a build.
+//
+// The API token being used must be a user API token
+func (c *Client) AddSSHUser(account, repo string, buildNum int) (*Build, error) {
+	build := &Build{}
+
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/ssh-users", account, repo, buildNum), build, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return build, nil
+}
+
 // Build triggers a new build for the given project on the given branch
 // Returns the new build information
 func (c *Client) Build(account, repo, branch string) (*Build, error) {
@@ -364,6 +380,69 @@ func (c *Client) GetActionOutputs(a *Action) ([]*Output, error) {
 	}
 
 	return output, nil
+}
+
+// ListCheckoutKeys fetches the checkout keys associated with the given project
+func (c *Client) ListCheckoutKeys(account, repo string) ([]*CheckoutKey, error) {
+	checkoutKeys := []*CheckoutKey{}
+
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), &checkoutKeys, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return checkoutKeys, nil
+}
+
+// CreateCheckoutKey creates a new checkout key for a project
+// Valid key types are currently deploy-key and github-user-key
+//
+// The github-user-key type requires that the API token being used be a user API token
+func (c *Client) CreateCheckoutKey(account, repo, keyType string) (*CheckoutKey, error) {
+	checkoutKey := &CheckoutKey{}
+
+	body := struct {
+		KeyType string `json:"type"`
+	}{KeyType: keyType}
+
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), checkoutKey, nil, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return checkoutKey, nil
+}
+
+// GetCheckoutKey fetches the checkout key for the given project by fingerprint
+func (c *Client) GetCheckoutKey(account, repo, fingerprint string) (*CheckoutKey, error) {
+	checkoutKey := &CheckoutKey{}
+
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), &checkoutKey, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return checkoutKey, nil
+}
+
+// DeleteCheckoutKey fetches the checkout key for the given project by fingerprint
+func (c *Client) DeleteCheckoutKey(account, repo, fingerprint string) error {
+	return c.request("DELETE", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), nil, nil, nil)
+}
+
+// AddHerokuKey associates a Heroku key with the user's API token to allow
+// CircleCI to deploy to Heroku on your behalf
+//
+// The API token being used must be a user API token
+//
+// NOTE: It doesn't look like there is currently a way to dissaccociate your
+// Heroku key, so use with care
+func (c *Client) AddHerokuKey(key string) error {
+	body := struct {
+		APIKey string `json:"apikey"`
+	}{APIKey: key}
+
+	return c.request("POST", "/user/heroku-key", nil, nil, body)
 }
 
 // EnvVar represents an environment variable
@@ -582,6 +661,7 @@ type Build struct {
 	Retries                 []int             `json:"retries"`
 	RetryOf                 *int              `json:"retry_of"`
 	SSHEnabled              *bool             `json:"ssh_enabled"`
+	SSHUsers                []*SSHUser        `json:"ssh_users"`
 	StartTime               *time.Time        `json:"start_time"`
 	Status                  string            `json:"status"`
 	Steps                   []*Step           `json:"steps"`
@@ -645,4 +725,20 @@ type Output struct {
 	Type    string    `json:"type"`
 	Time    time.Time `json:"time"`
 	Message string    `json:"message"`
+}
+
+// SSHUser represents a user associated with an build with SSH enabled
+type SSHUser struct {
+	GithubID int    `json:"github_id"`
+	Login    string `json:"login"`
+}
+
+// CheckoutKey represents an SSH checkout key for a project
+type CheckoutKey struct {
+	PublicKey   string    `json:"public_key"`
+	Type        string    `json:"type"` // github-user-key or deploy-key
+	Fingerprint string    `json:"fingerprint"`
+	Login       *string   `json:"login"` // github username if this is a user key
+	Preferred   bool      `json:"preferred"`
+	Time        time.Time `json:"time"` // time key was created
 }

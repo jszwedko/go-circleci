@@ -580,3 +580,152 @@ func TestClient_GetActionOutput_noOutput(t *testing.T) {
 		t.Errorf("Client.GetActionOutput(%+v) returned %+v: want %v", action, outputs, nil)
 	}
 }
+
+func TestClient_ListCheckoutKeys(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/jszwedko/foo/checkout-key", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprintf(w, `[{
+			"public_key": "some public key",
+			"type": "deploy-key",
+			"fingerprint": "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2",
+			"login": null,
+			"preferred": true
+		}]`)
+	})
+
+	checkoutKeys, err := client.ListCheckoutKeys("jszwedko", "foo")
+	if err != nil {
+		t.Errorf("Client.ListCheckoutKeys(jszwedko, foo) returned error: %v", err)
+	}
+
+	want := []*CheckoutKey{&CheckoutKey{
+		PublicKey:   "some public key",
+		Type:        "deploy-key",
+		Fingerprint: "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2",
+		Login:       nil,
+		Preferred:   true,
+	}}
+	if !reflect.DeepEqual(checkoutKeys, want) {
+		t.Errorf("Client.ListCheckoutKeys(jszwedko, foo) returned %+v, want %+v", checkoutKeys, want)
+	}
+}
+
+func TestClient_CreateCheckoutKey(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/jszwedko/foo/checkout-key", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		testBody(t, r, `{"type":"github-user-key"}`)
+		fmt.Fprintf(w, `{
+			"public_key": "some public key",
+			"type": "github-user-key",
+			"fingerprint": "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2",
+			"login": "jszwedko",
+			"preferred": true
+		}`)
+	})
+
+	checkoutKey, err := client.CreateCheckoutKey("jszwedko", "foo", "github-user-key")
+	if err != nil {
+		t.Errorf("Client.CreateCheckoutKey(jszwedko, foo, github-user-key) returned error: %v", err)
+	}
+
+	username := "jszwedko"
+	want := &CheckoutKey{
+		PublicKey:   "some public key",
+		Type:        "github-user-key",
+		Fingerprint: "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2",
+		Login:       &username,
+		Preferred:   true,
+	}
+	if !reflect.DeepEqual(checkoutKey, want) {
+		t.Errorf("Client.Client.CreateCheckoutKey(jszwedko, foo, github-user-key) returned %+v, want %+v", checkoutKey, want)
+	}
+}
+
+func TestClient_GetCheckoutKey(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/jszwedko/foo/checkout-key/37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprintf(w, `{
+			"public_key": "some public key",
+			"type": "deploy-key",
+			"fingerprint": "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2",
+			"login": null,
+			"preferred": true
+		}`)
+	})
+
+	checkoutKey, err := client.GetCheckoutKey("jszwedko", "foo", "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2")
+	if err != nil {
+		t.Errorf("Client.GetCheckoutKey(jszwedko, foo, 37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2) returned error: %v", err)
+	}
+
+	want := &CheckoutKey{
+		PublicKey:   "some public key",
+		Type:        "deploy-key",
+		Fingerprint: "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2",
+		Login:       nil,
+		Preferred:   true,
+	}
+	if !reflect.DeepEqual(checkoutKey, want) {
+		t.Errorf("Client.GetCheckoutKey(jszwedko, foo, 37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2) returned %+v, want %+v", checkoutKey, want)
+	}
+}
+
+func TestClient_DeleteCheckoutKey(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/jszwedko/foo/checkout-key/37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "DELETE")
+		fmt.Fprintf(w, `{"message": "ok"}`)
+	})
+
+	err := client.DeleteCheckoutKey("jszwedko", "foo", "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2")
+	if err != nil {
+		t.Errorf("Client.DeleteCheckoutKey(jszwedko, foo, 37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2) returned error: %v", err)
+	}
+}
+
+func TestClient_AddSSHUser(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/jszwedko/foo/123/ssh-users", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"ssh_users": [{"github_id": 1234, "login": "jszwedko"}]}`)
+	})
+
+	build, err := client.AddSSHUser("jszwedko", "foo", 123)
+	if err != nil {
+		t.Errorf("Client.AddSSHUser(jszwedko, foo, 123) returned error: %v", err)
+	}
+
+	want := &Build{SSHUsers: []*SSHUser{&SSHUser{GithubID: 1234, Login: "jszwedko"}}}
+	if !reflect.DeepEqual(build, want) {
+		t.Errorf("Client.AddSSHUser(jszwedko, foo, 123) returned %+v, want %+v", build, want)
+	}
+}
+
+func TestClient_AddHerokuKey(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/user/heroku-key", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		testBody(t, r, `{"apikey":"53433a12-9c99-11e5-97f5-1458d009721"}`)
+		fmt.Fprint(w, `""`)
+	})
+
+	err := client.AddHerokuKey("53433a12-9c99-11e5-97f5-1458d009721")
+	if err != nil {
+		t.Errorf("Client.AddHerokuKey(53433a12-9c99-11e5-97f5-1458d009721) returned error: %v", err)
+	}
+}
