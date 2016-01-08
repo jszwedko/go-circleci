@@ -7,6 +7,8 @@ Go library for interacting with [CircleCI's API](https://circleci.com/docs/api).
 * Retry builds
 * Manipulate checkout keys, environment variables, and other settings for a project
 
+**The CircleCI HTTP API response schemas are not well documented so please file an issue if you run into something that doesn't match up.**
+
 Example usage:
 
 ```golang
