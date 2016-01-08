@@ -686,7 +686,7 @@ type Step struct {
 // Action represents an individual action within a build step
 type Action struct {
 	BashCommand        *string    `json:"bash_command"`
-	Canceled           *string    `json:"canceled"`
+	Canceled           *bool      `json:"canceled"`
 	Command            string     `json:"command"`
 	Continue           *string    `json:"continue"`
 	EndTime            *time.Time `json:"end_time"`
