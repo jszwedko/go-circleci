@@ -687,7 +687,6 @@ type Step struct {
 type Action struct {
 	BashCommand        *string    `json:"bash_command"`
 	Canceled           *bool      `json:"canceled"`
-	Command            string     `json:"command"`
 	Continue           *string    `json:"continue"`
 	EndTime            *time.Time `json:"end_time"`
 	ExitCode           *int       `json:"exit_code"`
