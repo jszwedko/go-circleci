@@ -347,6 +347,19 @@ func (c *Client) AddEnvVar(account, repo, name, value string) (*EnvVar, error) {
 	return envVar, nil
 }
 
+// ListEnvVars list environment variable to the specified project
+// Returns the env vars (the value will be masked)
+func (c *Client) ListEnvVars(account, repo string) ([]EnvVar, error) {
+	envVar := []EnvVar{}
+
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/envvar", account, repo), &envVar, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return envVar, nil
+}
+
 // DeleteEnvVar deletes the specified environment variable from the project
 func (c *Client) DeleteEnvVar(account, repo, name string) error {
 	return c.request("DELETE", fmt.Sprintf("project/%s/%s/envvar/%s", account, repo, name), nil, nil, nil)
