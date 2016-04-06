@@ -515,6 +515,29 @@ func TestClient_AddEnvVar(t *testing.T) {
 	}
 }
 
+func TestClient_ListEnvVars(t *testing.T) {
+	setup()
+	defer teardown()
+	mux.HandleFunc("/project/jszwedko/foo/envvar", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		testBody(t, r, "")
+		fmt.Fprint(w, `[{"name": "bar", "value":"xxxbar"}]`)
+	})
+
+	status, err := client.ListEnvVars("jszwedko", "foo")
+	if err != nil {
+		t.Errorf("Client.ListEnvVars(jszwedko, foo) returned error: %v", err)
+	}
+
+	want := []EnvVar{
+		{Name: "bar", Value: "xxxbar"},
+	}
+
+	if !reflect.DeepEqual(status, want) {
+		t.Errorf("Client.ListEnvVars(jszwedko, foo) returned %+v, want %+v", status, want)
+	}
+}
+
 func TestClient_DeleteEnvVar(t *testing.T) {
 	setup()
 	defer teardown()
