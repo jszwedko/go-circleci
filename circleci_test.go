@@ -1,8 +1,10 @@
 package circleci
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -97,6 +99,44 @@ func TestClient_request(t *testing.T) {
 	err := client.request("GET", "/me", &User{}, nil, nil)
 	if err != nil {
 		t.Errorf(`Client.request("GET", "/me", &User{}, nil, nil) errored with %s`, err)
+	}
+}
+
+func TestClient_request_withDebug(t *testing.T) {
+	setup()
+	defer teardown()
+	buf := bytes.NewBuffer(nil)
+	client.Token = "ABCD"
+	client.Debug = true
+	client.Logger = log.New(buf, "", 0)
+	mux.HandleFunc("/me", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		testHeader(t, r, "Accept", "application/json")
+		testHeader(t, r, "Content-Type", "application/json")
+		testQueryIncludes(t, r, "circle-token", "ABCD")
+		fmt.Fprint(w, `{"login": "jszwedko"}`)
+	})
+
+	err := client.request("GET", "/me", &User{}, nil, nil)
+	if err != nil {
+		t.Errorf(`Client.request("GET", "/me", &User{}, nil, nil) errored with %s`, err)
+	}
+
+	output := buf.String()
+
+	t.Logf("debug output:\n%s", output)
+	if !strings.Contains(output, "request:") {
+		t.Error(`expected "request:" to appear in debug output`)
+	}
+	if !strings.Contains(output, "HTTP/1.1") {
+		t.Error(`expected http request to appear in debug output`)
+	}
+
+	if !strings.Contains(output, "response:") {
+		t.Error(`expected "response:" to appear in debug output`)
+	}
+	if !strings.Contains(output, "HTTP/1.1 200 OK") {
+		t.Error(`expected http request to appear in debug output`)
 	}
 }
 
@@ -515,6 +555,29 @@ func TestClient_AddEnvVar(t *testing.T) {
 	}
 }
 
+func TestClient_ListEnvVars(t *testing.T) {
+	setup()
+	defer teardown()
+	mux.HandleFunc("/project/jszwedko/foo/envvar", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		testBody(t, r, "")
+		fmt.Fprint(w, `[{"name": "bar", "value":"xxxbar"}]`)
+	})
+
+	status, err := client.ListEnvVars("jszwedko", "foo")
+	if err != nil {
+		t.Errorf("Client.ListEnvVars(jszwedko, foo) returned error: %v", err)
+	}
+
+	want := []EnvVar{
+		{Name: "bar", Value: "xxxbar"},
+	}
+
+	if !reflect.DeepEqual(status, want) {
+		t.Errorf("Client.ListEnvVars(jszwedko, foo) returned %+v, want %+v", status, want)
+	}
+}
+
 func TestClient_DeleteEnvVar(t *testing.T) {
 	setup()
 	defer teardown()
@@ -562,6 +625,42 @@ func TestClient_GetActionOutput(t *testing.T) {
 	want := []*Output{{Message: "hello"}, {Message: "world"}}
 	if !reflect.DeepEqual(outputs, want) {
 		t.Errorf("Client.GetActionOutput(%+v) returned %+v, want %+v", action, outputs, want)
+	}
+}
+
+func TestClient_GetActionOutput_withDebug(t *testing.T) {
+	setup()
+	defer teardown()
+	buf := bytes.NewBuffer(nil)
+	client.Debug = true
+	client.Logger = log.New(buf, "", 0)
+	mux.HandleFunc("/some-s3-path", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprintf(w, `[{"Message":"hello"}, {"Message": "world"}]`)
+	})
+
+	action := &Action{HasOutput: true, OutputURL: server.URL + "/some-s3-path"}
+
+	_, err := client.GetActionOutputs(action)
+	if err != nil {
+		t.Errorf("Client.GetActionOutput(%+v) returned error: %v", action, err)
+	}
+
+	output := buf.String()
+
+	t.Logf("debug output:\n%s", output)
+	if !strings.Contains(output, "request:") {
+		t.Error(`expected "request:" to appear in debug output`)
+	}
+	if !strings.Contains(output, "HTTP/1.1") {
+		t.Error(`expected http request to appear in debug output`)
+	}
+
+	if !strings.Contains(output, "response:") {
+		t.Error(`expected "response:" to appear in debug output`)
+	}
+	if !strings.Contains(output, "HTTP/1.1 200 OK") {
+		t.Error(`expected http request to appear in debug output`)
 	}
 }
 
