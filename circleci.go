@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 )
@@ -18,7 +21,13 @@ const (
 
 var (
 	defaultBaseURL = &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1/"}
+	defaultLogger  = log.New(os.Stderr, "", log.LstdFlags)
 )
+
+// Logger is a minimal interface for injecting custom logging logic for debug logs
+type Logger interface {
+	Printf(fmt string, args ...interface{})
+}
 
 // APIError represents an error from CircleCI
 type APIError struct {
@@ -36,6 +45,9 @@ type Client struct {
 	BaseURL    *url.URL     // CircleCI API endpoint (defaults to DefaultEndpoint)
 	Token      string       // CircleCI API token (needed for private repositories and mutative actions)
 	HTTPClient *http.Client // HTTPClient to use for connecting to CircleCI (defaults to http.DefaultClient)
+
+	Debug  bool   // debug logging enabled
+	Logger Logger // logger to send debug messages on (if enabled), defaults to logging to stderr with the standard flags
 }
 
 func (c *Client) baseURL() *url.URL {
@@ -54,6 +66,40 @@ func (c *Client) client() *http.Client {
 	return c.HTTPClient
 }
 
+func (c *Client) logger() Logger {
+	if c.Logger == nil {
+		return defaultLogger
+	}
+
+	return c.Logger
+}
+
+func (c *Client) debug(format string, args ...interface{}) {
+	if c.Debug {
+		c.logger().Printf(format, args...)
+	}
+}
+
+func (c *Client) debugRequest(req *http.Request) {
+	if c.Debug {
+		out, err := httputil.DumpRequestOut(req, true)
+		if err != nil {
+			c.debug("error debugging request %+v: %s", req, err)
+		}
+		c.debug("request:\n%+v", string(out))
+	}
+}
+
+func (c *Client) debugResponse(resp *http.Response) {
+	if c.Debug {
+		out, err := httputil.DumpResponse(resp, true)
+		if err != nil {
+			c.debug("error debugging response %+v: %s", resp, err)
+		}
+		c.debug("response:\n%+v", string(out))
+	}
+}
+
 type nopCloser struct {
 	io.Reader
 }
@@ -67,6 +113,8 @@ func (c *Client) request(method, path string, responseStruct interface{}, params
 	params.Add("circle-token", c.Token)
 
 	u := c.baseURL().ResolveReference(&url.URL{Path: path, RawQuery: params.Encode()})
+
+	c.debug("building request for %s", u)
 
 	req, err := http.NewRequest(method, u.String(), nil)
 	if err != nil {
@@ -85,11 +133,15 @@ func (c *Client) request(method, path string, responseStruct interface{}, params
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
 
+	c.debugRequest(req)
+
 	resp, err := c.client().Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	c.debugResponse(resp)
 
 	if resp.StatusCode >= 300 {
 		body, err := ioutil.ReadAll(resp.Body)
@@ -381,11 +433,20 @@ func (c *Client) GetActionOutputs(a *Action) ([]*Output, error) {
 		return nil, nil
 	}
 
-	resp, err := c.client().Get(a.OutputURL)
+	req, err := http.NewRequest("GET", a.OutputURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	c.debugRequest(req)
+
+	resp, err := c.client().Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	c.debugResponse(resp)
 
 	output := []*Output{}
 	if err = json.NewDecoder(resp.Body).Decode(&output); err != nil {
