@@ -36,7 +36,7 @@ func main() {
 ```
 
 For the CLI that uses this library (or to see more example usages), please see
-[circle-cli](https://github.com/jszwedko/circleci-cli).
+[circleci-cli](https://github.com/jszwedko/circleci-cli).
 
 Currently in alpha, so the library API may change -- please use your favorite
 Go dependency management solution.
