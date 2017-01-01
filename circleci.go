@@ -345,6 +345,21 @@ func (c *Client) Build(account, repo, branch string) (*Build, error) {
 	return build, nil
 }
 
+// ParameterizedBuild triggers a new parameterized build for the given
+// project on the given branch, Marshaling the struct into json and passing
+// in the post body.
+// Returns the new build information
+func (c *Client) ParameterizedBuild(account, repo, branch string, buildParameters interface{}) (*Build, error) {
+	build := &Build{}
+
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, buildParameters)
+	if err != nil {
+		return nil, err
+	}
+
+	return build, nil
+}
+
 // RetryBuild triggers a retry of the specified build
 // Returns the new build information
 func (c *Client) RetryBuild(account, repo string, buildNum int) (*Build, error) {
