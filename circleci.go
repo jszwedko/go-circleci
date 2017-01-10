@@ -200,6 +200,24 @@ func (c *Client) ListProjects() ([]*Project, error) {
 	return projects, nil
 }
 
+// EnableProject enables a project - generates a deploy SSH key used to checkout the Github repo.
+// The Github user tied to the Circle API Token must have "admin" access to the repo.
+func (c *Client) EnableProject(account, repo string) error {
+	return c.request("POST", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil)
+}
+
+// FollowProject follows a project
+func (c *Client) FollowProject(account, repo string) (*Project, error) {
+	project := &Project{}
+
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/follow", account, repo), project, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return project, nil
+}
+
 // GetProject retrieves a specific project
 // Returns nil of the project is not in the list of watched projects
 func (c *Client) GetProject(account, repo string) (*Project, error) {
