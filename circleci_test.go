@@ -203,6 +203,38 @@ func TestClient_ListProjects(t *testing.T) {
 	}
 }
 
+func TestClient_EnableProject(t *testing.T) {
+	setup()
+	defer teardown()
+	mux.HandleFunc("/project/org-name/repo-name/enable", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+	})
+
+	err := client.EnableProject("org-name", "repo-name")
+	if err != nil {
+		t.Errorf("Client.EnableProject() returned error: %v", err)
+	}
+}
+
+func TestClient_FollowProject(t *testing.T) {
+	setup()
+	defer teardown()
+	mux.HandleFunc("/project/org-name/repo-name/follow", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"reponame": "repo-name"}`)
+	})
+
+	project, err := client.FollowProject("org-name", "repo-name")
+	if err != nil {
+		t.Errorf("Client.FollowProject() returned error: %v", err)
+	}
+
+	want := &Project{Reponame: "repo-name"}
+	if !reflect.DeepEqual(project, want) {
+		t.Errorf("Client.FollowProject() returned %+v, want %+v", project, want)
+	}
+}
+
 func TestClient_GetProject(t *testing.T) {
 	setup()
 	defer teardown()
