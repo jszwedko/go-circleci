@@ -206,32 +206,32 @@ func TestClient_ListProjects(t *testing.T) {
 func TestClient_EnableProject(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/org-name/repo-name/enable", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/org-name/repo-name/enable", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 	})
 
-	err := client.EnableProject("org-name", "repo-name")
+	err := client.EnableProject(VCSGithub, "org-name", "repo-name")
 	if err != nil {
-		t.Errorf("Client.EnableProject() returned error: %v", err)
+		t.Errorf("Client.EnableProject(%+v, %+v, %+v) returned error: %v", VCSGithub, "org-name", "repo-name", err)
 	}
 }
 
 func TestClient_FollowProject(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/org-name/repo-name/follow", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/org-name/repo-name/follow", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		fmt.Fprint(w, `{"reponame": "repo-name"}`)
 	})
 
-	project, err := client.FollowProject("org-name", "repo-name")
+	project, err := client.FollowProject(VCSGithub, "org-name", "repo-name")
 	if err != nil {
-		t.Errorf("Client.FollowProject() returned error: %v", err)
+		t.Errorf("Client.FollowProject(%+v, %+v, %+v) returned error: %v", VCSGithub, "org-name", "repo-name", err)
 	}
 
 	want := &Project{Reponame: "repo-name"}
 	if !reflect.DeepEqual(project, want) {
-		t.Errorf("Client.FollowProject() returned %+v, want %+v", project, want)
+		t.Errorf("Client.FollowProject(%+v, %+v, %+v) returned %+v, want %+v", VCSGithub, "org-name", "repo-name", project, want)
 	}
 }
 
@@ -241,20 +241,21 @@ func TestClient_GetProject(t *testing.T) {
 	mux.HandleFunc("/projects", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `[
-			{"username": "jszwedko", "reponame": "bar"},
-			{"username": "joe", "reponame": "foo"},
-			{"username": "jszwedko", "reponame": "foo"}
+			{"username": "jszwedko", "reponame": "bar", "vcs_type": "github"},
+			{"username": "joe", "reponame": "foo", "vcs_type": "github"},
+			{"username": "jszwedko", "reponame": "foo", "vcs_type": "bitbucket"},
+			{"username": "jszwedko", "reponame": "foo", "vcs_type": "github"}
 		]`)
 	})
 
-	project, err := client.GetProject("jszwedko", "foo")
+	project, err := client.GetProject(VCSGithub, "jszwedko", "foo")
 	if err != nil {
-		t.Errorf("Client.GetProject returned error: %v", err)
+		t.Errorf("Client.GetProject(%+v, %+v, %+v) returned err: %v", VCSGithub, "jszwedko", "foo", err)
 	}
 
-	want := &Project{Username: "jszwedko", Reponame: "foo"}
+	want := &Project{Username: "jszwedko", Reponame: "foo", VCSType: VCSGithub}
 	if !reflect.DeepEqual(project, want) {
-		t.Errorf("Client.GetProject(%+v, %+v) returned %+v, want %+v", "jszwedko", "foo", project, want)
+		t.Errorf("Client.GetProject(%+v, %+v, %+v) returned %+v, want %+v", VCSGithub, "jszwedko", "foo", project, want)
 	}
 }
 
@@ -268,13 +269,13 @@ func TestClient_GetProject_noMatching(t *testing.T) {
 		]`)
 	})
 
-	project, err := client.GetProject("jszwedko", "foo")
+	project, err := client.GetProject(VCSGithub, "jszwedko", "foo")
 	if err != nil {
-		t.Errorf("Client.GetProject returned error: %v", err)
+		t.Errorf("Client.GetProject(%+v, %+v, %+v) returned error: %v", VCSGithub, "jszwedko", "foo", err)
 	}
 
 	if project != nil {
-		t.Errorf("Client.GetProject(%+v, %+v) returned %+v, want %+v", "jszwedko", "foo", project, nil)
+		t.Errorf("Client.GetProject(%+v, %+v, %+v) returned %+v, want %+v", VCSGithub, "jszwedko", "foo", project, nil)
 	}
 }
 
@@ -389,7 +390,7 @@ func TestClient_ListRecentBuilds(t *testing.T) {
 func TestClient_ListRecentBuildsForProject(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/foo/bar/tree/master", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/foo/bar/tree/master", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		testQueryIncludes(t, r, "filter", "running")
 		testQueryIncludes(t, r, "offset", "0")
@@ -397,9 +398,9 @@ func TestClient_ListRecentBuildsForProject(t *testing.T) {
 		fmt.Fprint(w, `[{"build_num": 123}, {"build_num": 124}]`)
 	})
 
-	call := fmt.Sprintf("Client.ListRecentBuilds(foo, bar, master, running, 10, 0)")
+	call := fmt.Sprintf("Client.ListRecentBuilds(github, foo, bar, master, running, 10, 0)")
 
-	builds, err := client.ListRecentBuildsForProject("foo", "bar", "master", "running", 10, 0)
+	builds, err := client.ListRecentBuildsForProject(VCSGithub, "foo", "bar", "master", "running", 10, 0)
 	if err != nil {
 		t.Errorf("%s returned error: %v", call, err)
 	}
@@ -413,7 +414,7 @@ func TestClient_ListRecentBuildsForProject(t *testing.T) {
 func TestClient_ListRecentBuildsForProject_noBranch(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/foo/bar", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/foo/bar", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		testQueryIncludes(t, r, "filter", "running")
 		testQueryIncludes(t, r, "offset", "0")
@@ -421,9 +422,9 @@ func TestClient_ListRecentBuildsForProject_noBranch(t *testing.T) {
 		fmt.Fprint(w, `[{"build_num": 123}, {"build_num": 124}]`)
 	})
 
-	call := fmt.Sprintf("Client.ListRecentBuilds(foo, bar, , running, 10, 0)")
+	call := fmt.Sprintf("Client.ListRecentBuilds(github, foo, bar, , running, 10, 0)")
 
-	builds, err := client.ListRecentBuildsForProject("foo", "bar", "", "running", 10, 0)
+	builds, err := client.ListRecentBuildsForProject(VCSGithub, "foo", "bar", "", "running", 10, 0)
 	if err != nil {
 		t.Errorf("%s returned error: %v", call, err)
 	}
@@ -437,168 +438,168 @@ func TestClient_ListRecentBuildsForProject_noBranch(t *testing.T) {
 func TestClient_GetBuild(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/123", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/123", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `{"build_num": 123}`)
 	})
 
-	build, err := client.GetBuild("jszwedko", "foo", 123)
+	build, err := client.GetBuild(VCSGithub, "jszwedko", "foo", 123)
 	if err != nil {
-		t.Errorf("Client.GetBuild(jszwedko, foo, 123) returned error: %v", err)
+		t.Errorf("Client.GetBuild(github, jszwedko, foo, 123) returned error: %v", err)
 	}
 
 	want := &Build{BuildNum: 123}
 	if !reflect.DeepEqual(build, want) {
-		t.Errorf("Client.GetBuild(jszwedko, foo, 123) returned %+v, want %+v", build, want)
+		t.Errorf("Client.GetBuild(github, jszwedko, foo, 123) returned %+v, want %+v", build, want)
 	}
 }
 
 func TestClient_ListBuildArtifacts(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/123/artifacts", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/123/artifacts", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `[{"Path": "/some/path"}]`)
 	})
 
-	artifacts, err := client.ListBuildArtifacts("jszwedko", "foo", 123)
+	artifacts, err := client.ListBuildArtifacts(VCSGithub, "jszwedko", "foo", 123)
 	if err != nil {
-		t.Errorf("Client.ListBuildArtifacts(jszwedko, foo, 123) returned error: %v", err)
+		t.Errorf("Client.ListBuildArtifacts(github, jszwedko, foo, 123) returned error: %v", err)
 	}
 
 	want := []*Artifact{{Path: "/some/path"}}
 	if !reflect.DeepEqual(artifacts, want) {
-		t.Errorf("Client.ListBuildArtifacts(jszwedko, foo, 123) returned %+v, want %+v", artifacts, want)
+		t.Errorf("Client.ListBuildArtifacts(github, jszwedko, foo, 123) returned %+v, want %+v", artifacts, want)
 	}
 }
 
 func TestClient_ListTestMetadata(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/123/tests", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/123/tests", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `{"tests": [{"name": "some test"}]}`)
 	})
 
-	metadata, err := client.ListTestMetadata("jszwedko", "foo", 123)
+	metadata, err := client.ListTestMetadata(VCSGithub, "jszwedko", "foo", 123)
 	if err != nil {
-		t.Errorf("Client.ListTestMetadata(jszwedko, foo, 123) returned error: %v", err)
+		t.Errorf("Client.ListTestMetadata(github, jszwedko, foo, 123) returned error: %v", err)
 	}
 
 	want := []*TestMetadata{{Name: "some test"}}
 	if !reflect.DeepEqual(metadata, want) {
-		t.Errorf("Client.ListTestMetadata(jszwedko, foo, 123) returned %+v, want %+v", metadata, want)
+		t.Errorf("Client.ListTestMetadata(github, jszwedko, foo, 123) returned %+v, want %+v", metadata, want)
 	}
 }
 
 func TestClient_Build(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/tree/master", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/tree/master", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		fmt.Fprint(w, `{"build_num": 123}`)
 	})
 
-	build, err := client.Build("jszwedko", "foo", "master")
+	build, err := client.Build(VCSGithub, "jszwedko", "foo", "master")
 	if err != nil {
-		t.Errorf("Client.Build(jszwedko, foo, master) returned error: %v", err)
+		t.Errorf("Client.Build(github, jszwedko, foo, master) returned error: %v", err)
 	}
 
 	want := &Build{BuildNum: 123}
 	if !reflect.DeepEqual(build, want) {
-		t.Errorf("Client.Build(jszwedko, foo, master) returned %+v, want %+v", build, want)
+		t.Errorf("Client.Build(github, jszwedko, foo, master) returned %+v, want %+v", build, want)
 	}
 }
 
 func TestClient_RetryBuild(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/123/retry", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/123/retry", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		fmt.Fprint(w, `{"build_num": 124}`)
 	})
 
-	build, err := client.RetryBuild("jszwedko", "foo", 123)
+	build, err := client.RetryBuild(VCSGithub, "jszwedko", "foo", 123)
 	if err != nil {
-		t.Errorf("Client.RetryBuild(jszwedko, foo, 123) returned error: %v", err)
+		t.Errorf("Client.RetryBuild(github, jszwedko, foo, 123) returned error: %v", err)
 	}
 
 	want := &Build{BuildNum: 124}
 	if !reflect.DeepEqual(build, want) {
-		t.Errorf("Client.RetryBuild(jszwedko, foo, 123) returned %+v, want %+v", build, want)
+		t.Errorf("Client.RetryBuild(github, jszwedko, foo, 123) returned %+v, want %+v", build, want)
 	}
 }
 
 func TestClient_CancelBuild(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/123/cancel", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/123/cancel", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		fmt.Fprint(w, `{"build_num": 123}`)
 	})
 
-	build, err := client.CancelBuild("jszwedko", "foo", 123)
+	build, err := client.CancelBuild(VCSGithub, "jszwedko", "foo", 123)
 	if err != nil {
-		t.Errorf("Client.CancelBuild(jszwedko, foo, 123) returned error: %v", err)
+		t.Errorf("Client.CancelBuild(github, jszwedko, foo, 123) returned error: %v", err)
 	}
 
 	want := &Build{BuildNum: 123}
 	if !reflect.DeepEqual(build, want) {
-		t.Errorf("Client.CancelBuild(jszwedko, foo, 123) returned %+v, want %+v", build, want)
+		t.Errorf("Client.CancelBuild(github, jszwedko, foo, 123) returned %+v, want %+v", build, want)
 	}
 }
 
 func TestClient_ClearCache(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/build-cache", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/build-cache", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "DELETE")
 		fmt.Fprint(w, `{"status": "cache cleared"}`)
 	})
 
-	status, err := client.ClearCache("jszwedko", "foo")
+	status, err := client.ClearCache(VCSGithub, "jszwedko", "foo")
 	if err != nil {
-		t.Errorf("Client.ClearCache(jszwedko, foo) returned error: %v", err)
+		t.Errorf("Client.ClearCache(github, jszwedko, foo) returned error: %v", err)
 	}
 
 	want := "cache cleared"
 	if !reflect.DeepEqual(status, want) {
-		t.Errorf("Client.ClearCache(jszwedko, foo) returned %+v, want %+v", status, want)
+		t.Errorf("Client.ClearCache(github, jszwedko, foo) returned %+v, want %+v", status, want)
 	}
 }
 
 func TestClient_AddEnvVar(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/envvar", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/envvar", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		testBody(t, r, `{"name":"bar","value":"baz"}`)
 		fmt.Fprint(w, `{"name": "bar"}`)
 	})
 
-	status, err := client.AddEnvVar("jszwedko", "foo", "bar", "baz")
+	status, err := client.AddEnvVar(VCSGithub, "jszwedko", "foo", "bar", "baz")
 	if err != nil {
-		t.Errorf("Client.AddEnvVar(jszwedko, foo, bar, baz) returned error: %v", err)
+		t.Errorf("Client.AddEnvVar(github, jszwedko, foo, bar, baz) returned error: %v", err)
 	}
 
 	want := &EnvVar{Name: "bar"}
 	if !reflect.DeepEqual(status, want) {
-		t.Errorf("Client.AddEnvVar(jszwedko, foo, bar, baz) returned %+v, want %+v", status, want)
+		t.Errorf("Client.AddEnvVar(github, jszwedko, foo, bar, baz) returned %+v, want %+v", status, want)
 	}
 }
 
 func TestClient_ListEnvVars(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/envvar", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/envvar", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		testBody(t, r, "")
 		fmt.Fprint(w, `[{"name": "bar", "value":"xxxbar"}]`)
 	})
 
-	status, err := client.ListEnvVars("jszwedko", "foo")
+	status, err := client.ListEnvVars(VCSGithub, "jszwedko", "foo")
 	if err != nil {
-		t.Errorf("Client.ListEnvVars(jszwedko, foo) returned error: %v", err)
+		t.Errorf("Client.ListEnvVars(github, jszwedko, foo) returned error: %v", err)
 	}
 
 	want := []EnvVar{
@@ -606,36 +607,36 @@ func TestClient_ListEnvVars(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(status, want) {
-		t.Errorf("Client.ListEnvVars(jszwedko, foo) returned %+v, want %+v", status, want)
+		t.Errorf("Client.ListEnvVars(github, jszwedko, foo) returned %+v, want %+v", status, want)
 	}
 }
 
 func TestClient_DeleteEnvVar(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/envvar/bar", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/envvar/bar", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "DELETE")
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	err := client.DeleteEnvVar("jszwedko", "foo", "bar")
+	err := client.DeleteEnvVar(VCSGithub, "jszwedko", "foo", "bar")
 	if err != nil {
-		t.Errorf("Client.DeleteEnvVar(jszwedko, foo, bar) returned error: %v", err)
+		t.Errorf("Client.DeleteEnvVar(github, jszwedko, foo, bar) returned error: %v", err)
 	}
 }
 
 func TestClient_AddSSHKey(t *testing.T) {
 	setup()
 	defer teardown()
-	mux.HandleFunc("/project/jszwedko/foo/ssh-key", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/ssh-key", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		testBody(t, r, `{"hostname":"example.com","private_key":"some-key"}`)
 		w.WriteHeader(http.StatusCreated)
 	})
 
-	err := client.AddSSHKey("jszwedko", "foo", "example.com", "some-key")
+	err := client.AddSSHKey(VCSGithub, "jszwedko", "foo", "example.com", "some-key")
 	if err != nil {
-		t.Errorf("Client.AddSSHKey(jszwedko, foo, example.com, some-key) returned error: %v", err)
+		t.Errorf("Client.AddSSHKey(github, jszwedko, foo, example.com, some-key) returned error: %v", err)
 	}
 }
 
@@ -716,7 +717,7 @@ func TestClient_ListCheckoutKeys(t *testing.T) {
 	setup()
 	defer teardown()
 
-	mux.HandleFunc("/project/jszwedko/foo/checkout-key", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/checkout-key", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprintf(w, `[{
 			"public_key": "some public key",
@@ -727,9 +728,9 @@ func TestClient_ListCheckoutKeys(t *testing.T) {
 		}]`)
 	})
 
-	checkoutKeys, err := client.ListCheckoutKeys("jszwedko", "foo")
+	checkoutKeys, err := client.ListCheckoutKeys(VCSGithub, "jszwedko", "foo")
 	if err != nil {
-		t.Errorf("Client.ListCheckoutKeys(jszwedko, foo) returned error: %v", err)
+		t.Errorf("Client.ListCheckoutKeys(github, jszwedko, foo) returned error: %v", err)
 	}
 
 	want := []*CheckoutKey{{
@@ -740,7 +741,7 @@ func TestClient_ListCheckoutKeys(t *testing.T) {
 		Preferred:   true,
 	}}
 	if !reflect.DeepEqual(checkoutKeys, want) {
-		t.Errorf("Client.ListCheckoutKeys(jszwedko, foo) returned %+v, want %+v", checkoutKeys, want)
+		t.Errorf("Client.ListCheckoutKeys(github, jszwedko, foo) returned %+v, want %+v", checkoutKeys, want)
 	}
 }
 
@@ -748,7 +749,7 @@ func TestClient_CreateCheckoutKey(t *testing.T) {
 	setup()
 	defer teardown()
 
-	mux.HandleFunc("/project/jszwedko/foo/checkout-key", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/checkout-key", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		testBody(t, r, `{"type":"github-user-key"}`)
 		fmt.Fprintf(w, `{
@@ -760,9 +761,9 @@ func TestClient_CreateCheckoutKey(t *testing.T) {
 		}`)
 	})
 
-	checkoutKey, err := client.CreateCheckoutKey("jszwedko", "foo", "github-user-key")
+	checkoutKey, err := client.CreateCheckoutKey(VCSGithub, "jszwedko", "foo", "github-user-key")
 	if err != nil {
-		t.Errorf("Client.CreateCheckoutKey(jszwedko, foo, github-user-key) returned error: %v", err)
+		t.Errorf("Client.CreateCheckoutKey(github, jszwedko, foo, github-user-key) returned error: %v", err)
 	}
 
 	username := "jszwedko"
@@ -774,7 +775,7 @@ func TestClient_CreateCheckoutKey(t *testing.T) {
 		Preferred:   true,
 	}
 	if !reflect.DeepEqual(checkoutKey, want) {
-		t.Errorf("Client.Client.CreateCheckoutKey(jszwedko, foo, github-user-key) returned %+v, want %+v", checkoutKey, want)
+		t.Errorf("Client.Client.CreateCheckoutKey(github, jszwedko, foo, github-user-key) returned %+v, want %+v", checkoutKey, want)
 	}
 }
 
@@ -782,7 +783,7 @@ func TestClient_GetCheckoutKey(t *testing.T) {
 	setup()
 	defer teardown()
 
-	mux.HandleFunc("/project/jszwedko/foo/checkout-key/37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/checkout-key/37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprintf(w, `{
 			"public_key": "some public key",
@@ -793,9 +794,9 @@ func TestClient_GetCheckoutKey(t *testing.T) {
 		}`)
 	})
 
-	checkoutKey, err := client.GetCheckoutKey("jszwedko", "foo", "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2")
+	checkoutKey, err := client.GetCheckoutKey(VCSGithub, "jszwedko", "foo", "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2")
 	if err != nil {
-		t.Errorf("Client.GetCheckoutKey(jszwedko, foo, 37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2) returned error: %v", err)
+		t.Errorf("Client.GetCheckoutKey(github, jszwedko, foo, 37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2) returned error: %v", err)
 	}
 
 	want := &CheckoutKey{
@@ -806,7 +807,7 @@ func TestClient_GetCheckoutKey(t *testing.T) {
 		Preferred:   true,
 	}
 	if !reflect.DeepEqual(checkoutKey, want) {
-		t.Errorf("Client.GetCheckoutKey(jszwedko, foo, 37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2) returned %+v, want %+v", checkoutKey, want)
+		t.Errorf("Client.GetCheckoutKey(github, jszwedko, foo, 37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2) returned %+v, want %+v", checkoutKey, want)
 	}
 }
 
@@ -814,14 +815,14 @@ func TestClient_DeleteCheckoutKey(t *testing.T) {
 	setup()
 	defer teardown()
 
-	mux.HandleFunc("/project/jszwedko/foo/checkout-key/37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/checkout-key/37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "DELETE")
 		fmt.Fprintf(w, `{"message": "ok"}`)
 	})
 
-	err := client.DeleteCheckoutKey("jszwedko", "foo", "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2")
+	err := client.DeleteCheckoutKey(VCSGithub, "jszwedko", "foo", "37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2")
 	if err != nil {
-		t.Errorf("Client.DeleteCheckoutKey(jszwedko, foo, 37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2) returned error: %v", err)
+		t.Errorf("Client.DeleteCheckoutKey(github, jszwedko, foo, 37:27:f7:68:85:43:46:d2:e1:30:83:8f:f7:1b:ad:c2) returned error: %v", err)
 	}
 }
 
@@ -829,19 +830,19 @@ func TestClient_AddSSHUser(t *testing.T) {
 	setup()
 	defer teardown()
 
-	mux.HandleFunc("/project/jszwedko/foo/123/ssh-users", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/project/github/jszwedko/foo/123/ssh-users", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 		fmt.Fprint(w, `{"ssh_users": [{"github_id": 1234, "login": "jszwedko"}]}`)
 	})
 
-	build, err := client.AddSSHUser("jszwedko", "foo", 123)
+	build, err := client.AddSSHUser(VCSGithub, "jszwedko", "foo", 123)
 	if err != nil {
-		t.Errorf("Client.AddSSHUser(jszwedko, foo, 123) returned error: %v", err)
+		t.Errorf("Client.AddSSHUser(github, jszwedko, foo, 123) returned error: %v", err)
 	}
 
 	want := &Build{SSHUsers: []*SSHUser{{GithubID: 1234, Login: "jszwedko"}}}
 	if !reflect.DeepEqual(build, want) {
-		t.Errorf("Client.AddSSHUser(jszwedko, foo, 123) returned %+v, want %+v", build, want)
+		t.Errorf("Client.AddSSHUser(github, jszwedko, foo, 123) returned %+v, want %+v", build, want)
 	}
 }
 
