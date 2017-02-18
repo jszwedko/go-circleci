@@ -216,6 +216,19 @@ func TestClient_EnableProject(t *testing.T) {
 	}
 }
 
+func TestClient_DisableProject(t *testing.T) {
+	setup()
+	defer teardown()
+	mux.HandleFunc("/project/org-name/repo-name/enable", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "DELETE")
+	})
+
+	err := client.DisableProject("org-name", "repo-name")
+	if err != nil {
+		t.Errorf("Client.EnableProject() returned error: %v", err)
+	}
+}
+
 func TestClient_FollowProject(t *testing.T) {
 	setup()
 	defer teardown()
