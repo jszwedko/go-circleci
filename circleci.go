@@ -206,6 +206,11 @@ func (c *Client) EnableProject(account, repo string) error {
 	return c.request("POST", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil)
 }
 
+// DisableProject disables a project
+func (c *Client) DisableProject(account, repo string) error {
+	return c.request("DELETE", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil)
+}
+
 // FollowProject follows a project
 func (c *Client) FollowProject(account, repo string) (*Project, error) {
 	project := &Project{}
