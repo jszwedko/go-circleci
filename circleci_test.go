@@ -523,6 +523,31 @@ func TestClient_Build(t *testing.T) {
 	}
 }
 
+func TestClient_ParameterizedBuild(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/jszwedko/foo/tree/master", func(w http.ResponseWriter, r *http.Request) {
+		testBody(t, r, `{"param":"foo"}`)
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"build_num": 123}`)
+	})
+
+	params := struct {
+		Param string `json:"param"`
+	}{"foo"}
+
+	build, err := client.ParameterizedBuild("jszwedko", "foo", "master", params)
+	if err != nil {
+		t.Errorf("Client.Build(jszwedko, foo, master) returned error: %v", err)
+	}
+
+	want := &Build{BuildNum: 123}
+	if !reflect.DeepEqual(build, want) {
+		t.Errorf("Client.Build(jszwedko, foo, master) returned %+v, want %+v", build, want)
+	}
+}
+
 func TestClient_RetryBuild(t *testing.T) {
 	setup()
 	defer teardown()
