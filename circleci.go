@@ -372,7 +372,7 @@ func (c *Client) Build(account, repo, branch string) (*Build, error) {
 // project on the given branch, Marshaling the struct into json and passing
 // in the post body.
 // Returns the new build information
-func (c *Client) ParameterizedBuild(account, repo, branch string, buildParameters interface{}) (*Build, error) {
+func (c *Client) ParameterizedBuild(account, repo, branch string, buildParameters map[string]string) (*Build, error) {
 	build := &Build{}
 
 	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, buildParameters)

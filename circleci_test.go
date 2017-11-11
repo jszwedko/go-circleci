@@ -533,9 +533,9 @@ func TestClient_ParameterizedBuild(t *testing.T) {
 		fmt.Fprint(w, `{"build_num": 123}`)
 	})
 
-	params := struct {
-		Param string `json:"param"`
-	}{"foo"}
+	params := map[string]string{
+		"param": "foo",
+	}
 
 	build, err := client.ParameterizedBuild("jszwedko", "foo", "master", params)
 	if err != nil {
