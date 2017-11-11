@@ -585,13 +585,13 @@ type User struct {
 	AvatarURL           string                  `json:"avatar_url"`
 	BasicEmailPrefs     string                  `json:"basic_email_prefs"`
 	Containers          int                     `json:"containers"`
-	CreatedAt           time.Time               `json:"created_at"`
+	CreatedAt           *time.Time              `json:"created_at"`
 	DaysLeftInTrial     int                     `json:"days_left_in_trial"`
 	GithubID            int                     `json:"github_id"`
 	GithubOauthScopes   []string                `json:"github_oauth_scopes"`
 	GravatarID          *string                 `json:"gravatar_id"`
 	HerokuAPIKey        *string                 `json:"heroku_api_key"`
-	LastViewedChangelog time.Time               `json:"last_viewed_changelog"`
+	LastViewedChangelog *time.Time              `json:"last_viewed_changelog"`
 	Login               string                  `json:"login"`
 	Name                *string                 `json:"name"`
 	Parallelism         int                     `json:"parallelism"`
@@ -599,7 +599,7 @@ type User struct {
 	Projects            map[string]*UserProject `json:"projects"`
 	SelectedEmail       *string                 `json:"selected_email"`
 	SignInCount         int                     `json:"sign_in_count"`
-	TrialEnd            time.Time               `json:"trial_end"`
+	TrialEnd            *time.Time              `json:"trial_end"`
 }
 
 // AWSConfig represents AWS configuration for a project
@@ -616,12 +616,12 @@ type AWSKeypair struct {
 
 // BuildSummary represents the subset of build information returned with a Project
 type BuildSummary struct {
-	AddedAt     time.Time `json:"added_at"`
-	BuildNum    int       `json:"build_num"`
-	Outcome     string    `json:"outcome"`
-	PushedAt    time.Time `json:"pushed_at"`
-	Status      string    `json:"status"`
-	VCSRevision string    `json:"vcs_revision"`
+	AddedAt     *time.Time `json:"added_at"`
+	BuildNum    int        `json:"build_num"`
+	Outcome     string     `json:"outcome"`
+	PushedAt    *time.Time `json:"pushed_at"`
+	Status      string     `json:"status"`
+	VCSRevision string     `json:"vcs_revision"`
 }
 
 // Branch represents a repository branch
@@ -833,9 +833,9 @@ type TestMetadata struct {
 
 // Output represents the output of a given action
 type Output struct {
-	Type    string    `json:"type"`
-	Time    time.Time `json:"time"`
-	Message string    `json:"message"`
+	Type    string     `json:"type"`
+	Time    *time.Time `json:"time"`
+	Message string     `json:"message"`
 }
 
 // SSHUser represents a user associated with an build with SSH enabled
@@ -846,10 +846,10 @@ type SSHUser struct {
 
 // CheckoutKey represents an SSH checkout key for a project
 type CheckoutKey struct {
-	PublicKey   string    `json:"public_key"`
-	Type        string    `json:"type"` // github-user-key or deploy-key
-	Fingerprint string    `json:"fingerprint"`
-	Login       *string   `json:"login"` // github username if this is a user key
-	Preferred   bool      `json:"preferred"`
-	Time        time.Time `json:"time"` // time key was created
+	PublicKey   string     `json:"public_key"`
+	Type        string     `json:"type"` // github-user-key or deploy-key
+	Fingerprint string     `json:"fingerprint"`
+	Login       *string    `json:"login"` // github username if this is a user key
+	Preferred   bool       `json:"preferred"`
+	Time        *time.Time `json:"time"` // time key was created
 }
