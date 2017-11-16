@@ -784,6 +784,7 @@ type Build struct {
 	User                    *BuildUser        `json:"user"`
 	Username                string            `json:"username"`
 	VcsRevision             string            `json:"vcs_revision"`
+	VcsTag                  string            `json:"vcs_tag"`
 	VCSURL                  string            `json:"vcs_url"`
 	Why                     string            `json:"why"`
 }
