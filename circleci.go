@@ -197,6 +197,12 @@ func (c *Client) ListProjects() ([]*Project, error) {
 		return nil, err
 	}
 
+	for _, project := range projects {
+		if err := cleanupProject(project); err != nil {
+			return nil, err
+		}
+	}
+
 	return projects, nil
 }
 
@@ -217,6 +223,10 @@ func (c *Client) FollowProject(account, repo string) (*Project, error) {
 
 	err := c.request("POST", fmt.Sprintf("project/%s/%s/follow", account, repo), project, nil, nil)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := cleanupProject(project); err != nil {
 		return nil, err
 	}
 
@@ -853,4 +863,25 @@ type CheckoutKey struct {
 	Login       *string   `json:"login"` // github username if this is a user key
 	Preferred   bool      `json:"preferred"`
 	Time        time.Time `json:"time"` // time key was created
+}
+
+// clean up project returned from API by:
+// * url decoding branch names (https://discuss.circleci.com/t/api-returns-url-encoded-branch-names-in-json-response/18524/5)
+func cleanupProject(project *Project) error {
+	if project.Branches == nil {
+		return nil
+	}
+
+	newBranches := map[string]Branch{}
+	for name, branch := range project.Branches {
+		escapedName, err := url.QueryUnescape(name)
+		if err != nil {
+			return fmt.Errorf("error url decoding branch name '%s':  %s", name, err)
+		}
+
+		newBranches[escapedName] = branch
+	}
+	project.Branches = newBranches
+
+	return nil
 }
