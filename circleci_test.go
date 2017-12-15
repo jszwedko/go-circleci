@@ -291,6 +291,28 @@ func TestClient_GetProject_noMatching(t *testing.T) {
 	}
 }
 
+func TestClient_GetProject_urlDecodeBranches(t *testing.T) {
+	setup()
+	defer teardown()
+	mux.HandleFunc("/projects", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		// using Fprintf instead Fprint becouse `go vet` complains about a possible intention to use a formatted string
+		fmt.Fprintf(w, `[
+			{"username": "jszwedko", "reponame": "bar", "branches": {"apiv1%%2E1": {}}}
+		]`)
+	})
+
+	project, err := client.GetProject("jszwedko", "bar")
+	if err != nil {
+		t.Errorf("Client.GetProject returned error: %v", err)
+	}
+
+	_, ok := project.Branches["apiv1.1"]
+	if !ok {
+		t.Errorf("expected Client.GetProject(%+v, %+v) to return branches containing 'apiv1.1'  got %+v", "jszwedko", "foo", project.Branches)
+	}
+}
+
 func TestClient_recentBuilds_multiPage(t *testing.T) {
 	setup()
 	defer teardown()
