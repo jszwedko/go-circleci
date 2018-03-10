@@ -203,6 +203,31 @@ func TestClient_ListProjects(t *testing.T) {
 	}
 }
 
+func TestClient_ListProjects_parseFeatureFlagsRaw(t *testing.T) {
+	setup()
+	defer teardown()
+	mux.HandleFunc("/projects", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		[{
+			"reponame": "foo",
+			"feature_flags": {
+				"not-in-feature-flags": true
+			}
+		}]
+		`)
+	})
+
+	projects, err := client.ListProjects()
+	if err != nil {
+		t.Errorf("Client.ListProjects() returned error: %v", err)
+	}
+
+	if projects[0].FeatureFlags.Raw()["not-in-feature-flags"] != true {
+		t.Errorf("expected Client.ListProjects()[not-in-feature-flags] to be true, was %+v", projects[0].FeatureFlags.Raw()["not-in-feature-flags"])
+	}
+}
+
 func TestClient_EnableProject(t *testing.T) {
 	setup()
 	defer teardown()

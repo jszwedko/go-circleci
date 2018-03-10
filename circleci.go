@@ -662,7 +662,7 @@ type Project struct {
 	DefaultBranch       string            `json:"default_branch"`
 	Dependencies        string            `json:"dependencies"`
 	Extra               string            `json:"extra"`
-	FeatureFlags        map[string]bool   `json:"feature_flags"`
+	FeatureFlags        FeatureFlags      `json:"feature_flags"`
 	FlowdockAPIToken    *string           `json:"flowdock_api_token"`
 	Followed            bool              `json:"followed"`
 	HallNotifyPrefs     *string           `json:"hall_notify_prefs"`
@@ -691,6 +691,79 @@ type Project struct {
 	Test                string            `json:"test"`
 	Username            string            `json:"username"`
 	VCSURL              string            `json:"vcs_url"`
+}
+
+type FeatureFlags struct {
+	TrustyBeta             bool    `json:"trusty-beta"`
+	OSX                    bool    `json:"osx"`
+	SetGithubStatus        bool    `json:"set-github-status"`
+	BuildPRsOnly           bool    `json:"build-prs-only"`
+	ForksReceiveSecretVars bool    `json:"forks-receive-secret-env-vars"`
+	Fleet                  *string `json:"fleet"`
+	BuildForkPRs           bool    `json:"build-fork-prs"`
+	AutocancelBuilds       bool    `json:"autocancel-builds"`
+	OSS                    bool    `json:"oss"`
+	MemoryLimit            *string `json:"memory-limit"`
+
+	raw map[string]interface{}
+}
+
+func (f *FeatureFlags) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &f.raw); err != nil {
+		return err
+	}
+
+	if v, ok := f.raw["trusty-beta"]; ok {
+		f.TrustyBeta = v.(bool)
+	}
+
+	if v, ok := f.raw["osx"]; ok {
+		f.OSX = v.(bool)
+	}
+
+	if v, ok := f.raw["set-github-status"]; ok {
+		f.SetGithubStatus = v.(bool)
+	}
+
+	if v, ok := f.raw["build-prs-only"]; ok {
+		f.BuildPRsOnly = v.(bool)
+	}
+
+	if v, ok := f.raw["forks-receive-secret-env-vars"]; ok {
+		f.ForksReceiveSecretVars = v.(bool)
+	}
+
+	if v, ok := f.raw["fleet"]; ok {
+		if v != nil {
+			f.Fleet = v.(*string)
+		}
+	}
+
+	if v, ok := f.raw["build-fork-prs"]; ok {
+		f.BuildForkPRs = v.(bool)
+	}
+
+	if v, ok := f.raw["autocancel-builds"]; ok {
+		f.AutocancelBuilds = v.(bool)
+	}
+
+	if v, ok := f.raw["oss"]; ok {
+		f.OSS = v.(bool)
+	}
+
+	if v, ok := f.raw["memory-limit"]; ok {
+		if v != nil {
+			f.MemoryLimit = v.(*string)
+		}
+	}
+
+	return nil
+}
+
+// Raw returns the underlying map[string]interface{} representing the feature flags
+// This is useful to access flags that have been added to the API, but not yet added to this library
+func (f *FeatureFlags) Raw() map[string]interface{} {
+	return f.raw
 }
 
 // CommitDetails represents information about a commit returned with other
