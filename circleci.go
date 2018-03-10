@@ -703,6 +703,7 @@ type FeatureFlags struct {
 	BuildForkPRs           bool    `json:"build-fork-prs"`
 	AutocancelBuilds       bool    `json:"autocancel-builds"`
 	OSS                    bool    `json:"oss"`
+	MemoryLimit            *string `json:"memory-limit"`
 
 	raw map[string]interface{}
 }
@@ -748,6 +749,12 @@ func (f *FeatureFlags) UnmarshalJSON(b []byte) error {
 
 	if v, ok := f.raw["oss"]; ok {
 		f.OSS = v.(bool)
+	}
+
+	if v, ok := f.raw["memory-limit"]; ok {
+		if v != nil {
+			f.MemoryLimit = v.(*string)
+		}
 	}
 
 	return nil
