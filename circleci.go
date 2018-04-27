@@ -212,7 +212,8 @@ func (c *Client) DisableProject(account, repo string) error {
 }
 
 // FollowProject follows a project
-func (c *Client) FollowProject(account, repo string) (*Project, error) {
+func (c *Client) FollowProject(vcsType, account, repo string) (*Project, error) {
+
 	project := &Project{}
 
 	err := c.request("POST", fmt.Sprintf("project/%s/%s/follow", account, repo), project, nil, nil)
