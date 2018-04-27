@@ -216,7 +216,7 @@ func (c *Client) FollowProject(vcsType, account, repo string) (*Project, error) 
 
 	project := &Project{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/follow", account, repo), project, nil, nil)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%s/follow", vcsType, account, repo), project, nil, nil)
 	if err != nil {
 		return nil, err
 	}
