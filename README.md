@@ -38,9 +38,6 @@ func main() {
 For the CLI that uses this library (or to see more example usages), please see
 [circleci-cli](https://github.com/jszwedko/circleci-cli).
 
-Currently in alpha, so the library API may change -- please use your favorite
-Go dependency management solution.
-
 See [GoDoc](http://godoc.org/github.com/jszwedko/go-circleci) for API usage.
 
 Feature requests and issues welcome!
