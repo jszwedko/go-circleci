@@ -1,0 +1,12 @@
+version: 2
+jobs:
+  build:
+    working_directory: /go/src/github.com/jszwedko/circleci-cli
+    environment:
+      TEST_RESULTS: /tmp/test-results
+    docker:
+    - image: circleci/golang:1.10
+    steps:
+    - checkout
+    - run: go vet ./...
+    - run: go test ./...
