@@ -72,6 +72,11 @@ func testAPIError(t *testing.T, err error, statusCode int, message string) {
 }
 
 func testQueryIncludes(t *testing.T, r *http.Request, key, value string) {
+	query := r.URL.Query()
+	if len(query[key]) > 1 {
+		t.Errorf("query parameter %s set with multiple values: %#v", key, query[key])
+		return
+	}
 	got := r.URL.Query().Get(key)
 	if got != value {
 		t.Errorf("expected query to include: %s=%s, got %s=%s", key, value, key, got)
@@ -97,6 +102,26 @@ func TestClient_request(t *testing.T) {
 	})
 
 	err := client.request("GET", "/me", &User{}, nil, nil)
+	if err != nil {
+		t.Errorf(`Client.request("GET", "/me", &User{}, nil, nil) errored with %s`, err)
+	}
+}
+
+func TestClient_requestOverridesCircleToken(t *testing.T) {
+	setup()
+	defer teardown()
+	client.Token = "ABCD"
+	mux.HandleFunc("/me", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		testHeader(t, r, "Accept", "application/json")
+		testHeader(t, r, "Content-Type", "application/json")
+		testQueryIncludes(t, r, "circle-token", "ABCD")
+		fmt.Fprint(w, `{"login": "jszwedko"}`)
+	})
+	values := url.Values{}
+	values.Set("circle-token", "pre-existing")
+
+	err := client.request("GET", "/me", &User{}, values, nil)
 	if err != nil {
 		t.Errorf(`Client.request("GET", "/me", &User{}, nil, nil) errored with %s`, err)
 	}

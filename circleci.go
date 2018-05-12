@@ -110,7 +110,7 @@ func (c *Client) request(method, path string, responseStruct interface{}, params
 	if params == nil {
 		params = url.Values{}
 	}
-	params.Add("circle-token", c.Token)
+	params.Set("circle-token", c.Token)
 
 	u := c.baseURL().ResolveReference(&url.URL{Path: path, RawQuery: params.Encode()})
 
