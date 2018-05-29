@@ -600,13 +600,15 @@ func TestClient_ParameterizedBuild(t *testing.T) {
 	defer teardown()
 
 	mux.HandleFunc("/project/jszwedko/foo/tree/master", func(w http.ResponseWriter, r *http.Request) {
-		testBody(t, r, `{"param":"foo"}`)
+		testBody(t, r, `{"build_parameters":{"param":"foo"}}`)
 		testMethod(t, r, "POST")
 		fmt.Fprint(w, `{"build_num": 123}`)
 	})
 
-	params := map[string]string{
-		"param": "foo",
+	params := map[string]map[string]string{
+		"build_parameters": {
+			"param": "foo",
+		},
 	}
 
 	build, err := client.ParameterizedBuild("jszwedko", "foo", "master", params)
