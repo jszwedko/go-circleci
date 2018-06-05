@@ -385,7 +385,11 @@ func (c *Client) Build(account, repo, branch string) (*Build, error) {
 func (c *Client) ParameterizedBuild(account, repo, branch string, buildParameters map[string]string) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, buildParameters)
+	parameters := struct {
+		BuildParameters map[string]string `json:"build_parameters"`
+	}{BuildParameters: buildParameters}
+
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, parameters)
 	if err != nil {
 		return nil, err
 	}
