@@ -863,6 +863,7 @@ type Build struct {
 	OSS                     bool              `json:"oss"`
 	Outcome                 string            `json:"outcome"`
 	Parallel                int               `json:"parallel"`
+	Picard                  *Picard           `json:"picard"`
 	Previous                *BuildStatus      `json:"previous"`
 	PreviousSuccessfulBuild *BuildStatus      `json:"previous_successful_build"`
 	QueuedAt                string            `json:"queued_at"`
@@ -885,6 +886,32 @@ type Build struct {
 	VCSURL                  string            `json:"vcs_url"`
 	Workflows               *Workflow         `json:"workflows"`
 	Why                     string            `json:"why"`
+}
+
+// Picard represents metadata about an execution environment
+type Picard struct {
+	BuildAgent    *BuildAgent    `json:"build_agent"`
+	ResourceClass *ResourceClass `json:"resource_class"`
+	Executor      string         `json:"executor"`
+}
+
+// ResourceClass represents usable resource information for a job
+type ResourceClass struct {
+	CPU   float64 `json:"cpu"`
+	RAM   int     `json:"ram"`
+	Class string  `json:"class"`
+}
+
+// BuildAgent represents an agent's information
+type BuildAgent struct {
+	Image      *string               `json:"image"`
+	Properties *BuildAgentProperties `json:"properties"`
+}
+
+// BuildAgentProperties represents agent properties
+type BuildAgentProperties struct {
+	BuildAgent string `json:"image"`
+	Executor   string `json:"executor"`
 }
 
 // Step represents an individual step in a build
