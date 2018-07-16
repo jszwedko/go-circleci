@@ -864,6 +864,7 @@ type Build struct {
 	Outcome                 string            `json:"outcome"`
 	Parallel                int               `json:"parallel"`
 	Picard                  *Picard           `json:"picard"`
+	Platform                string            `json:"platform"`
 	Previous                *BuildStatus      `json:"previous"`
 	PreviousSuccessfulBuild *BuildStatus      `json:"previous_successful_build"`
 	QueuedAt                string            `json:"queued_at"`
