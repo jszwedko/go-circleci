@@ -584,7 +584,7 @@ func TestClient_Build(t *testing.T) {
 		fmt.Fprint(w, `{"build_num": 123}`)
 	})
 
-	build, err := client.Build("jszwedko", "foo", "master")
+	build, err := client.Build("jszwedko", "foo", "master", "", "v0.1.0")
 	if err != nil {
 		t.Errorf("Client.Build(jszwedko, foo, master) returned error: %v", err)
 	}
@@ -609,7 +609,7 @@ func TestClient_ParameterizedBuild(t *testing.T) {
 		"param": "foo",
 	}
 
-	build, err := client.ParameterizedBuild("jszwedko", "foo", "master", params)
+	build, err := client.ParameterizedBuild("jszwedko", "foo", "master", "d4730e7a19e9b54b618e64a2f939517731cf7fd8", "", params)
 	if err != nil {
 		t.Errorf("Client.Build(jszwedko, foo, master) returned error: %v", err)
 	}

@@ -366,11 +366,20 @@ func (c *Client) AddSSHUser(account, repo string, buildNum int) (*Build, error) 
 }
 
 // Build triggers a new build for the given project on the given branch
-// Returns the new build information
-func (c *Client) Build(account, repo, branch string) (*Build, error) {
+// Returns the new build information. Specific revision or tag can be
+// triggered.
+func (c *Client) Build(account, repo, branch, revision, tag string) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, nil)
+	queryParams := make(url.Values, 2)
+	if revision != "" {
+		queryParams.Add("revision", revision)
+	}
+	if tag != "" {
+		queryParams.Add("tag", tag)
+	}
+
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, queryParams, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -380,16 +389,24 @@ func (c *Client) Build(account, repo, branch string) (*Build, error) {
 
 // ParameterizedBuild triggers a new parameterized build for the given
 // project on the given branch, Marshaling the struct into json and passing
-// in the post body.
+// in the post body. Specific revision or tag can be triggered.
 // Returns the new build information
-func (c *Client) ParameterizedBuild(account, repo, branch string, buildParameters map[string]string) (*Build, error) {
+func (c *Client) ParameterizedBuild(account, repo, branch, revision, tag string, buildParameters map[string]string) (*Build, error) {
 	build := &Build{}
 
 	parameters := struct {
 		BuildParameters map[string]string `json:"build_parameters"`
 	}{BuildParameters: buildParameters}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, parameters)
+	queryParams := make(url.Values, 2)
+	if revision != "" {
+		queryParams.Add("revision", revision)
+	}
+	if tag != "" {
+		queryParams.Add("tag", tag)
+	}
+
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, queryParams, parameters)
 	if err != nil {
 		return nil, err
 	}
