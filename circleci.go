@@ -707,7 +707,7 @@ type FeatureFlags struct {
 	BuildForkPRs           bool    `json:"build-fork-prs"`
 	AutocancelBuilds       bool    `json:"autocancel-builds"`
 	OSS                    bool    `json:"oss"`
-	MemoryLimit            string `json:"memory-limit"`
+	MemoryLimit            string  `json:"memory-limit"`
 
 	raw map[string]interface{}
 }
