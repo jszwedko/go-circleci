@@ -739,7 +739,8 @@ func (f *FeatureFlags) UnmarshalJSON(b []byte) error {
 
 	if v, ok := f.raw["fleet"]; ok {
 		if v != nil {
-			f.Fleet = v.(*string)
+			s := v.(string)
+			f.Fleet = &s
 		}
 	}
 
@@ -757,7 +758,8 @@ func (f *FeatureFlags) UnmarshalJSON(b []byte) error {
 
 	if v, ok := f.raw["memory-limit"]; ok {
 		if v != nil {
-			f.MemoryLimit = v.(*string)
+			s := v.(string)
+			f.MemoryLimit = &s
 		}
 	}
 

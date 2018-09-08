@@ -253,6 +253,36 @@ func TestClient_ListProjects_parseFeatureFlagsRaw(t *testing.T) {
 	}
 }
 
+func TestClient_ListProjects_parseNullableFeatureFlags(t *testing.T) {
+	setup()
+	defer teardown()
+	mux.HandleFunc("/projects", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `
+		[{
+			"reponame": "foo",
+			"feature_flags": {
+				"memory-limit": "512MB",
+				"fleet": "something"
+			}
+		}]
+		`)
+	})
+
+	projects, err := client.ListProjects()
+	if err != nil {
+		t.Errorf("Client.ListProjects() returned error: %v", err)
+	}
+
+	if *projects[0].FeatureFlags.Fleet != "something" {
+		t.Errorf("expected Client.ListProjects()[0].Fleet to be 'something', was %+v", projects[0].FeatureFlags.Fleet)
+	}
+
+	if *projects[0].FeatureFlags.MemoryLimit != "512MB" {
+		t.Errorf("expected Client.ListProjects()[0].MemoryLimit to be '512MB', was %+v", projects[0].FeatureFlags.MemoryLimit)
+	}
+}
+
 func TestClient_EnableProject(t *testing.T) {
 	setup()
 	defer teardown()
