@@ -1000,3 +1000,22 @@ func TestClient_AddHerokuKey(t *testing.T) {
 		t.Errorf("Client.AddHerokuKey(53433a12-9c99-11e5-97f5-1458d009721) returned error: %v", err)
 	}
 }
+
+func TestClient_UpdateSlackChatNotificationsSettings(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/bitbucket/jszwedko/foo/settings", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "PUT")
+		testBody(t, r, `{"slack_api_token":"a-b-c","slack_channel":null,"slack_notify_prefs":null,"slack_channel_override":null,"slack_subdomain":null,"slack_webhook_url":null}`)
+		fmt.Fprint(w, `""`)
+	})
+
+	token := "a-b-c"
+	err := client.UpdateSlackChatNotificationsSettings("bitbucket/jszwedko", "foo", SlackChatNotificationSettings{
+		APIToken: &token,
+	})
+	if err != nil {
+		t.Errorf("Client.UpdateSlackChatNotificationsSettings(...) returned error: %v", err)
+	}
+}

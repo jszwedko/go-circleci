@@ -556,6 +556,11 @@ func (c *Client) DeleteCheckoutKey(account, repo, fingerprint string) error {
 	return c.request("DELETE", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), nil, nil, nil)
 }
 
+// UpdateSlackChatNotificationsSettings updates slack chat notifications settings
+func (c *Client) UpdateSlackChatNotificationsSettings(account, repo string, settings SlackChatNotificationSettings) error {
+	return c.request("PUT", fmt.Sprintf("project/%s/%s/settings", account, repo), nil, nil, settings)
+}
+
 // AddHerokuKey associates a Heroku key with the user's API token to allow
 // CircleCI to deploy to Heroku on your behalf
 //
@@ -695,6 +700,16 @@ type Project struct {
 	Test                string            `json:"test"`
 	Username            string            `json:"username"`
 	VCSURL              string            `json:"vcs_url"`
+}
+
+// SlackChatNotificationSettings represents slack chat settings
+type SlackChatNotificationSettings struct {
+	APIToken        *string `json:"slack_api_token"`
+	Channel         *string `json:"slack_channel"`
+	NotifyPrefs     *string `json:"slack_notify_prefs"`
+	ChannelOverride *string `json:"slack_channel_override"`
+	Subdomain       *string `json:"slack_subdomain"`
+	WebhookURL      *string `json:"slack_webhook_url"`
 }
 
 type FeatureFlags struct {
