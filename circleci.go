@@ -780,6 +780,7 @@ type CommitDetails struct {
 	AuthorLogin    string     `json:"author_login"`
 	AuthorName     string     `json:"author_name"`
 	Body           string     `json:"body"`
+	Branch         string     `json:"branch"`
 	Commit         string     `json:"commit"`
 	CommitURL      string     `json:"commit_url"`
 	CommitterDate  *time.Time `json:"committer_date"`
@@ -869,6 +870,7 @@ type Build struct {
 	Platform                string            `json:"platform"`
 	Previous                *BuildStatus      `json:"previous"`
 	PreviousSuccessfulBuild *BuildStatus      `json:"previous_successful_build"`
+	PullRequests            []*PullRequest    `json:"pull_requests"`
 	QueuedAt                string            `json:"queued_at"`
 	Reponame                string            `json:"reponame"`
 	Retries                 []int             `json:"retries"`
@@ -896,6 +898,12 @@ type Picard struct {
 	BuildAgent    *BuildAgent    `json:"build_agent"`
 	ResourceClass *ResourceClass `json:"resource_class"`
 	Executor      string         `json:"executor"`
+}
+
+// PullRequest represents a pull request
+type PullRequest struct {
+	HeadSha string `json:"head_sha"`
+	URL     string `json:"url"`
 }
 
 // ResourceClass represents usable resource information for a job
