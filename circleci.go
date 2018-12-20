@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	defaultBaseURL = &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1/"}
+	defaultBaseURL = &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1.1/"}
 	defaultLogger  = log.New(os.Stderr, "", log.LstdFlags)
 )
 
@@ -208,8 +208,8 @@ func (c *Client) ListProjects() ([]*Project, error) {
 
 // EnableProject enables a project - generates a deploy SSH key used to checkout the Github repo.
 // The Github user tied to the Circle API Token must have "admin" access to the repo.
-func (c *Client) EnableProject(account, repo string) error {
-	return c.request("POST", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil)
+func (c *Client) EnableProject(vcsType, account, repo string) error {
+	return c.request("POST", fmt.Sprintf("project/%s/%s/%s/enable", vcsType, account, repo), nil, nil, nil)
 }
 
 // DisableProject disables a project
@@ -218,10 +218,11 @@ func (c *Client) DisableProject(account, repo string) error {
 }
 
 // FollowProject follows a project
-func (c *Client) FollowProject(account, repo string) (*Project, error) {
+func (c *Client) FollowProject(vcsType, account, repo string) (*Project, error) {
+
 	project := &Project{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/follow", account, repo), project, nil, nil)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%s/follow", vcsType, account, repo), project, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -298,8 +299,8 @@ func (c *Client) ListRecentBuilds(limit, offset int) ([]*Build, error) {
 // ListRecentBuildsForProject fetches the list of recent builds for the given repository
 // The status and branch parameters are used to further filter results if non-empty
 // If limit is -1, fetches all builds
-func (c *Client) ListRecentBuildsForProject(account, repo, branch, status string, limit, offset int) ([]*Build, error) {
-	path := fmt.Sprintf("project/%s/%s", account, repo)
+func (c *Client) ListRecentBuildsForProject(vcsType, account, repo, branch, status string, limit, offset int) ([]*Build, error) {
+	path := fmt.Sprintf("project/%s/%s/%s", vcsType, account, repo)
 	if branch != "" {
 		path = fmt.Sprintf("%s/tree/%s", path, branch)
 	}
@@ -313,10 +314,10 @@ func (c *Client) ListRecentBuildsForProject(account, repo, branch, status string
 }
 
 // GetBuild fetches a given build by number
-func (c *Client) GetBuild(account, repo string, buildNum int) (*Build, error) {
+func (c *Client) GetBuild(vcsType, account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d", account, repo, buildNum), build, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/%s/%d", vcsType, account, repo, buildNum), build, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -325,10 +326,10 @@ func (c *Client) GetBuild(account, repo string, buildNum int) (*Build, error) {
 }
 
 // ListBuildArtifacts fetches the build artifacts for the given build
-func (c *Client) ListBuildArtifacts(account, repo string, buildNum int) ([]*Artifact, error) {
+func (c *Client) ListBuildArtifacts(vcsType, account, repo string, buildNum int) ([]*Artifact, error) {
 	artifacts := []*Artifact{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d/artifacts", account, repo, buildNum), &artifacts, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/%s/%d/artifacts", vcsType, account, repo, buildNum), &artifacts, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -337,12 +338,12 @@ func (c *Client) ListBuildArtifacts(account, repo string, buildNum int) ([]*Arti
 }
 
 // ListTestMetadata fetches the build metadata for the given build
-func (c *Client) ListTestMetadata(account, repo string, buildNum int) ([]*TestMetadata, error) {
+func (c *Client) ListTestMetadata(vcsType, account, repo string, buildNum int) ([]*TestMetadata, error) {
 	metadata := struct {
 		Tests []*TestMetadata `json:"tests"`
 	}{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d/tests", account, repo, buildNum), &metadata, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/%s/%d/tests", vcsType, account, repo, buildNum), &metadata, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -367,10 +368,10 @@ func (c *Client) AddSSHUser(account, repo string, buildNum int) (*Build, error) 
 
 // Build triggers a new build for the given project on the given branch
 // Returns the new build information
-func (c *Client) Build(account, repo, branch string) (*Build, error) {
+func (c *Client) Build(vcsType, account, repo, branch string) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, nil)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%s/tree/%s", vcsType, account, repo, branch), build, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -399,10 +400,10 @@ func (c *Client) ParameterizedBuild(account, repo, branch string, buildParameter
 
 // RetryBuild triggers a retry of the specified build
 // Returns the new build information
-func (c *Client) RetryBuild(account, repo string, buildNum int) (*Build, error) {
+func (c *Client) RetryBuild(vcsType, account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/retry", account, repo, buildNum), build, nil, nil)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%s/%d/retry", vcsType, account, repo, buildNum), build, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -412,10 +413,10 @@ func (c *Client) RetryBuild(account, repo string, buildNum int) (*Build, error) 
 
 // CancelBuild triggers a cancel of the specified build
 // Returns the new build information
-func (c *Client) CancelBuild(account, repo string, buildNum int) (*Build, error) {
+func (c *Client) CancelBuild(vcsType, account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/cancel", account, repo, buildNum), build, nil, nil)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%s/%d/cancel", vcsType, account, repo, buildNum), build, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -425,12 +426,12 @@ func (c *Client) CancelBuild(account, repo string, buildNum int) (*Build, error)
 
 // ClearCache clears the cache of the specified project
 // Returns the status returned by CircleCI
-func (c *Client) ClearCache(account, repo string) (string, error) {
+func (c *Client) ClearCache(vcsType, account, repo string) (string, error) {
 	status := &struct {
 		Status string `json:"status"`
 	}{}
 
-	err := c.request("DELETE", fmt.Sprintf("project/%s/%s/build-cache", account, repo), status, nil, nil)
+	err := c.request("DELETE", fmt.Sprintf("project/%s/%s/%s/build-cache", vcsType, account, repo), status, nil, nil)
 	if err != nil {
 		return "", err
 	}
@@ -440,10 +441,10 @@ func (c *Client) ClearCache(account, repo string) (string, error) {
 
 // AddEnvVar adds a new environment variable to the specified project
 // Returns the added env var (the value will be masked)
-func (c *Client) AddEnvVar(account, repo, name, value string) (*EnvVar, error) {
+func (c *Client) AddEnvVar(vcsType, account, repo, name, value string) (*EnvVar, error) {
 	envVar := &EnvVar{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/envvar", account, repo), envVar, nil, &EnvVar{Name: name, Value: value})
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%s/envvar", vcsType, account, repo), envVar, nil, &EnvVar{Name: name, Value: value})
 	if err != nil {
 		return nil, err
 	}
@@ -453,10 +454,10 @@ func (c *Client) AddEnvVar(account, repo, name, value string) (*EnvVar, error) {
 
 // ListEnvVars list environment variable to the specified project
 // Returns the env vars (the value will be masked)
-func (c *Client) ListEnvVars(account, repo string) ([]EnvVar, error) {
+func (c *Client) ListEnvVars(vcsType, account, repo string) ([]EnvVar, error) {
 	envVar := []EnvVar{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/envvar", account, repo), &envVar, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/%s/envvar", vcsType, account, repo), &envVar, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -465,17 +466,17 @@ func (c *Client) ListEnvVars(account, repo string) ([]EnvVar, error) {
 }
 
 // DeleteEnvVar deletes the specified environment variable from the project
-func (c *Client) DeleteEnvVar(account, repo, name string) error {
-	return c.request("DELETE", fmt.Sprintf("project/%s/%s/envvar/%s", account, repo, name), nil, nil, nil)
+func (c *Client) DeleteEnvVar(vcsType, account, repo, name string) error {
+	return c.request("DELETE", fmt.Sprintf("project/%s/%s/%s/envvar/%s", vcsType, account, repo, name), nil, nil, nil)
 }
 
 // AddSSHKey adds a new SSH key to the project
-func (c *Client) AddSSHKey(account, repo, hostname, privateKey string) error {
+func (c *Client) AddSSHKey(vcsType, account, repo, hostname, privateKey string) error {
 	key := &struct {
 		Hostname   string `json:"hostname"`
 		PrivateKey string `json:"private_key"`
 	}{hostname, privateKey}
-	return c.request("POST", fmt.Sprintf("project/%s/%s/ssh-key", account, repo), nil, nil, key)
+	return c.request("POST", fmt.Sprintf("project/%s/%s/%s/ssh-key", vcsType, account, repo), nil, nil, key)
 }
 
 // GetActionOutputs fetches the output for the given action
@@ -524,14 +525,14 @@ func (c *Client) ListCheckoutKeys(account, repo string) ([]*CheckoutKey, error) 
 // Valid key types are currently deploy-key and github-user-key
 //
 // The github-user-key type requires that the API token being used be a user API token
-func (c *Client) CreateCheckoutKey(account, repo, keyType string) (*CheckoutKey, error) {
+func (c *Client) CreateCheckoutKey(vcsType, account, repo, keyType string) (*CheckoutKey, error) {
 	checkoutKey := &CheckoutKey{}
 
 	body := struct {
 		KeyType string `json:"type"`
 	}{KeyType: keyType}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), checkoutKey, nil, body)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%s/checkout-key", vcsType, account, repo), checkoutKey, nil, body)
 	if err != nil {
 		return nil, err
 	}
@@ -540,10 +541,10 @@ func (c *Client) CreateCheckoutKey(account, repo, keyType string) (*CheckoutKey,
 }
 
 // GetCheckoutKey fetches the checkout key for the given project by fingerprint
-func (c *Client) GetCheckoutKey(account, repo, fingerprint string) (*CheckoutKey, error) {
+func (c *Client) GetCheckoutKey(vcsType, account, repo, fingerprint string) (*CheckoutKey, error) {
 	checkoutKey := &CheckoutKey{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), &checkoutKey, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/%s/checkout-key/%s", vcsType, account, repo, fingerprint), &checkoutKey, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -552,8 +553,8 @@ func (c *Client) GetCheckoutKey(account, repo, fingerprint string) (*CheckoutKey
 }
 
 // DeleteCheckoutKey fetches the checkout key for the given project by fingerprint
-func (c *Client) DeleteCheckoutKey(account, repo, fingerprint string) error {
-	return c.request("DELETE", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), nil, nil, nil)
+func (c *Client) DeleteCheckoutKey(vcsType, account, repo, fingerprint string) error {
+	return c.request("DELETE", fmt.Sprintf("project/%s/%s/%s/checkout-key/%s", vcsType, account, repo, fingerprint), nil, nil, nil)
 }
 
 // AddHerokuKey associates a Heroku key with the user's API token to allow
