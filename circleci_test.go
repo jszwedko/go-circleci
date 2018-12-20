@@ -101,9 +101,9 @@ func TestClient_request(t *testing.T) {
 		fmt.Fprint(w, `{"login": "jszwedko"}`)
 	})
 
-	err := client.request("GET", "/me", &User{}, nil, nil)
+	err := client.Request("GET", "/me", &User{}, nil, nil)
 	if err != nil {
-		t.Errorf(`Client.request("GET", "/me", &User{}, nil, nil) errored with %s`, err)
+		t.Errorf(`Client.Request("GET", "/me", &User{}, nil, nil) errored with %s`, err)
 	}
 }
 
@@ -142,9 +142,9 @@ func TestClient_request_withDebug(t *testing.T) {
 		fmt.Fprint(w, `{"login": "jszwedko"}`)
 	})
 
-	err := client.request("GET", "/me", &User{}, nil, nil)
+	err := client.Request("GET", "/me", &User{}, nil, nil)
 	if err != nil {
-		t.Errorf(`Client.request("GET", "/me", &User{}, nil, nil) errored with %s`, err)
+		t.Errorf(`Client.Request("GET", "/me", &User{}, nil, nil) errored with %s`, err)
 	}
 
 	output := buf.String()
@@ -174,7 +174,7 @@ func TestClient_request_unauthenticated(t *testing.T) {
 		fmt.Fprint(w, `{"message": "You must log in first"}`)
 	})
 
-	err := client.request("GET", "/me", &User{}, nil, nil)
+	err := client.Request("GET", "/me", &User{}, nil, nil)
 	testAPIError(t, err, http.StatusUnauthorized, "You must log in first")
 }
 
@@ -186,7 +186,7 @@ func TestClient_request_noErrorMessage(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
-	err := client.request("GET", "/me", &User{}, nil, nil)
+	err := client.Request("GET", "/me", &User{}, nil, nil)
 	testAPIError(t, err, http.StatusInternalServerError, "")
 }
 

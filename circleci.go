@@ -106,7 +106,7 @@ type nopCloser struct {
 
 func (n nopCloser) Close() error { return nil }
 
-func (c *Client) request(method, path string, responseStruct interface{}, params url.Values, bodyStruct interface{}) error {
+func (c *Client) Request(method, path string, responseStruct interface{}, params url.Values, bodyStruct interface{}) error {
 	if params == nil {
 		params = url.Values{}
 	}
@@ -180,7 +180,7 @@ func (c *Client) request(method, path string, responseStruct interface{}, params
 func (c *Client) Me() (*User, error) {
 	user := &User{}
 
-	err := c.request("GET", "me", user, nil, nil)
+	err := c.Request("GET", "me", user, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (c *Client) Me() (*User, error) {
 func (c *Client) ListProjects() ([]*Project, error) {
 	projects := []*Project{}
 
-	err := c.request("GET", "projects", &projects, nil, nil)
+	err := c.Request("GET", "projects", &projects, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -209,19 +209,19 @@ func (c *Client) ListProjects() ([]*Project, error) {
 // EnableProject enables a project - generates a deploy SSH key used to checkout the Github repo.
 // The Github user tied to the Circle API Token must have "admin" access to the repo.
 func (c *Client) EnableProject(account, repo string) error {
-	return c.request("POST", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil)
+	return c.Request("POST", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil)
 }
 
 // DisableProject disables a project
 func (c *Client) DisableProject(account, repo string) error {
-	return c.request("DELETE", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil)
+	return c.Request("DELETE", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil)
 }
 
 // FollowProject follows a project
 func (c *Client) FollowProject(account, repo string) (*Project, error) {
 	project := &Project{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/follow", account, repo), project, nil, nil)
+	err := c.Request("POST", fmt.Sprintf("project/%s/%s/follow", account, repo), project, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (c *Client) recentBuilds(path string, params url.Values, limit, offset int)
 		params.Set("limit", strconv.Itoa(l))
 		params.Set("offset", strconv.Itoa(offset))
 
-		err := c.request("GET", path, &builds, params, nil)
+		err := c.Request("GET", path, &builds, params, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -316,7 +316,7 @@ func (c *Client) ListRecentBuildsForProject(account, repo, branch, status string
 func (c *Client) GetBuild(account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d", account, repo, buildNum), build, nil, nil)
+	err := c.Request("GET", fmt.Sprintf("project/%s/%s/%d", account, repo, buildNum), build, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +328,7 @@ func (c *Client) GetBuild(account, repo string, buildNum int) (*Build, error) {
 func (c *Client) ListBuildArtifacts(account, repo string, buildNum int) ([]*Artifact, error) {
 	artifacts := []*Artifact{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d/artifacts", account, repo, buildNum), &artifacts, nil, nil)
+	err := c.Request("GET", fmt.Sprintf("project/%s/%s/%d/artifacts", account, repo, buildNum), &artifacts, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +342,7 @@ func (c *Client) ListTestMetadata(account, repo string, buildNum int) ([]*TestMe
 		Tests []*TestMetadata `json:"tests"`
 	}{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d/tests", account, repo, buildNum), &metadata, nil, nil)
+	err := c.Request("GET", fmt.Sprintf("project/%s/%s/%d/tests", account, repo, buildNum), &metadata, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +357,7 @@ func (c *Client) ListTestMetadata(account, repo string, buildNum int) ([]*TestMe
 func (c *Client) AddSSHUser(account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/ssh-users", account, repo, buildNum), build, nil, nil)
+	err := c.Request("POST", fmt.Sprintf("project/%s/%s/%d/ssh-users", account, repo, buildNum), build, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -370,7 +370,7 @@ func (c *Client) AddSSHUser(account, repo string, buildNum int) (*Build, error) 
 func (c *Client) Build(account, repo, branch string) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, nil)
+	err := c.Request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +402,7 @@ func (c *Client) ParameterizedBuild(account, repo, branch string, buildParameter
 func (c *Client) RetryBuild(account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/retry", account, repo, buildNum), build, nil, nil)
+	err := c.Request("POST", fmt.Sprintf("project/%s/%s/%d/retry", account, repo, buildNum), build, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +415,7 @@ func (c *Client) RetryBuild(account, repo string, buildNum int) (*Build, error) 
 func (c *Client) CancelBuild(account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/cancel", account, repo, buildNum), build, nil, nil)
+	err := c.Request("POST", fmt.Sprintf("project/%s/%s/%d/cancel", account, repo, buildNum), build, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +430,7 @@ func (c *Client) ClearCache(account, repo string) (string, error) {
 		Status string `json:"status"`
 	}{}
 
-	err := c.request("DELETE", fmt.Sprintf("project/%s/%s/build-cache", account, repo), status, nil, nil)
+	err := c.Request("DELETE", fmt.Sprintf("project/%s/%s/build-cache", account, repo), status, nil, nil)
 	if err != nil {
 		return "", err
 	}
@@ -443,7 +443,7 @@ func (c *Client) ClearCache(account, repo string) (string, error) {
 func (c *Client) AddEnvVar(account, repo, name, value string) (*EnvVar, error) {
 	envVar := &EnvVar{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/envvar", account, repo), envVar, nil, &EnvVar{Name: name, Value: value})
+	err := c.Request("POST", fmt.Sprintf("project/%s/%s/envvar", account, repo), envVar, nil, &EnvVar{Name: name, Value: value})
 	if err != nil {
 		return nil, err
 	}
@@ -456,7 +456,7 @@ func (c *Client) AddEnvVar(account, repo, name, value string) (*EnvVar, error) {
 func (c *Client) ListEnvVars(account, repo string) ([]EnvVar, error) {
 	envVar := []EnvVar{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/envvar", account, repo), &envVar, nil, nil)
+	err := c.Request("GET", fmt.Sprintf("project/%s/%s/envvar", account, repo), &envVar, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -466,7 +466,7 @@ func (c *Client) ListEnvVars(account, repo string) ([]EnvVar, error) {
 
 // DeleteEnvVar deletes the specified environment variable from the project
 func (c *Client) DeleteEnvVar(account, repo, name string) error {
-	return c.request("DELETE", fmt.Sprintf("project/%s/%s/envvar/%s", account, repo, name), nil, nil, nil)
+	return c.Request("DELETE", fmt.Sprintf("project/%s/%s/envvar/%s", account, repo, name), nil, nil, nil)
 }
 
 // AddSSHKey adds a new SSH key to the project
@@ -475,7 +475,7 @@ func (c *Client) AddSSHKey(account, repo, hostname, privateKey string) error {
 		Hostname   string `json:"hostname"`
 		PrivateKey string `json:"private_key"`
 	}{hostname, privateKey}
-	return c.request("POST", fmt.Sprintf("project/%s/%s/ssh-key", account, repo), nil, nil, key)
+	return c.Request("POST", fmt.Sprintf("project/%s/%s/ssh-key", account, repo), nil, nil, key)
 }
 
 // GetActionOutputs fetches the output for the given action
@@ -512,7 +512,7 @@ func (c *Client) GetActionOutputs(a *Action) ([]*Output, error) {
 func (c *Client) ListCheckoutKeys(account, repo string) ([]*CheckoutKey, error) {
 	checkoutKeys := []*CheckoutKey{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), &checkoutKeys, nil, nil)
+	err := c.Request("GET", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), &checkoutKeys, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -531,7 +531,7 @@ func (c *Client) CreateCheckoutKey(account, repo, keyType string) (*CheckoutKey,
 		KeyType string `json:"type"`
 	}{KeyType: keyType}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), checkoutKey, nil, body)
+	err := c.Request("POST", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), checkoutKey, nil, body)
 	if err != nil {
 		return nil, err
 	}
@@ -543,7 +543,7 @@ func (c *Client) CreateCheckoutKey(account, repo, keyType string) (*CheckoutKey,
 func (c *Client) GetCheckoutKey(account, repo, fingerprint string) (*CheckoutKey, error) {
 	checkoutKey := &CheckoutKey{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), &checkoutKey, nil, nil)
+	err := c.Request("GET", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), &checkoutKey, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +553,7 @@ func (c *Client) GetCheckoutKey(account, repo, fingerprint string) (*CheckoutKey
 
 // DeleteCheckoutKey fetches the checkout key for the given project by fingerprint
 func (c *Client) DeleteCheckoutKey(account, repo, fingerprint string) error {
-	return c.request("DELETE", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), nil, nil, nil)
+	return c.Request("DELETE", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), nil, nil, nil)
 }
 
 // AddHerokuKey associates a Heroku key with the user's API token to allow
@@ -568,7 +568,7 @@ func (c *Client) AddHerokuKey(key string) error {
 		APIKey string `json:"apikey"`
 	}{APIKey: key}
 
-	return c.request("POST", "/user/heroku-key", nil, nil, body)
+	return c.Request("POST", "/user/heroku-key", nil, nil, body)
 }
 
 // EnvVar represents an environment variable
