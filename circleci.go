@@ -365,17 +365,11 @@ func (c *Client) AddSSHUser(account, repo string, buildNum int) (*Build, error) 
 	return build, nil
 }
 
-// Build triggers a new build for the given project on the given branch
+// Build triggers a new build for the given project for the given
+// project on the given branch.
 // Returns the new build information
 func (c *Client) Build(account, repo, branch string) (*Build, error) {
-	build := &Build{}
-
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return build, nil
+	return c.BuildOpts(account, repo, branch, nil)
 }
 
 // ParameterizedBuild triggers a new parameterized build for the given
@@ -383,13 +377,18 @@ func (c *Client) Build(account, repo, branch string) (*Build, error) {
 // in the post body.
 // Returns the new build information
 func (c *Client) ParameterizedBuild(account, repo, branch string, buildParameters map[string]string) (*Build, error) {
+	opts := map[string]interface{}{"build_parameters": buildParameters}
+	return c.BuildOpts(account, repo, branch, opts)
+}
+
+// BuildOpts triggeres a new build for the givent project on the given
+// branch, Marshaling the struct into json and passing
+// in the post body.
+// Returns the new build information
+func (c *Client) BuildOpts(account, repo, branch string, opts map[string]interface{}) (*Build, error) {
 	build := &Build{}
 
-	parameters := struct {
-		BuildParameters map[string]string `json:"build_parameters"`
-	}{BuildParameters: buildParameters}
-
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, parameters)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, opts)
 	if err != nil {
 		return nil, err
 	}
