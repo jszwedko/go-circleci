@@ -678,6 +678,22 @@ func TestClient_BuildOpts(t *testing.T) {
 	}
 }
 
+func TestClient_BuildByProject(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/github/jszwedko/foo/build", func(w http.ResponseWriter, r *http.Request) {
+		testBody(t, r, `{"branch":"master","revision":"SHA"}`)
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"status": 200, "body": "Build created"}`)
+	})
+
+	err := client.BuildByProject(VcsTypeGithub, "jszwedko", "foo", "master", "SHA", "")
+	if err != nil {
+		t.Errorf("Client.BuildByProject(github, jszwedko, foo, master, SHA) returned error: %v", err)
+	}
+}
+
 func TestClient_RetryBuild(t *testing.T) {
 	setup()
 	defer teardown()

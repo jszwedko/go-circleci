@@ -3,6 +3,7 @@ package circleci
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -394,6 +395,36 @@ func (c *Client) BuildOpts(account, repo, branch string, opts map[string]interfa
 	}
 
 	return build, nil
+}
+
+// BuildByProject triggers a build by project (this is the only way to trigger a build for project using Circle 2.1)
+func (c *Client) BuildByProject(vcsType VcsType, account string, repo string, branch string, revision string, tag string) error {
+	if tag != "" && (branch != "" || revision != "") {
+		return errors.New("cannot specify tag parameter alongside branch or revision")
+	}
+
+	resp := &BuildByProjectResponse{}
+
+	opts := map[string]interface{}{}
+	if branch != "" {
+		opts["branch"] = branch
+	}
+	if revision != "" {
+		opts["revision"] = revision
+	}
+	if tag != "" {
+		opts["tag"] = tag
+	}
+
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%s/build", vcsType, account, repo), resp, nil, opts)
+	if err != nil {
+		return err
+	}
+
+	if resp.Status != 200 || resp.Body != "Build created" {
+		return fmt.Errorf("unexpected build info in response %+v", resp)
+	}
+	return nil
 }
 
 // RetryBuild triggers a retry of the specified build
@@ -989,6 +1020,21 @@ type CheckoutKey struct {
 	Login       *string   `json:"login"` // github username if this is a user key
 	Preferred   bool      `json:"preferred"`
 	Time        time.Time `json:"time"` // time key was created
+}
+
+// VcsType represents the version control system type
+type VcsType string
+
+// VcsType constants (github and bitbucket are the currently supported choices)
+const (
+	VcsTypeGithub    VcsType = "github"
+	VcsTypeBitbucket VcsType = "bitbucket"
+)
+
+// BuildByProjectResponse is the shape of the response body from the trigger build by project endpoint
+type BuildByProjectResponse struct {
+	Status int    `json:"status"`
+	Body   string `json:"body"`
 }
 
 // clean up project returned from API by:
