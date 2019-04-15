@@ -398,6 +398,8 @@ func (c *Client) BuildOpts(account, repo, branch string, opts map[string]interfa
 }
 
 // BuildByProject triggers a build by project (this is the only way to trigger a build for project using Circle 2.1)
+// NOTE: this endpoint is only available in the CircleCI API v1.1. in order to call it, you must instantiate the Client
+// object with the following value for BaseURL: &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1.1/"}
 func (c *Client) BuildByProject(vcsType VcsType, account string, repo string, branch string, revision string, tag string) error {
 	if tag != "" && (branch != "" || revision != "") {
 		return errors.New("cannot specify tag parameter alongside branch or revision")
