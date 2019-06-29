@@ -4,6 +4,23 @@
 
 ## [Unreleased]
 
+## 0.3.0 - 2019-06-29
+
+Added:
+
+* `Build`s now return `Workflow` information
+* `Build`s now return `Picard` information which describes the execution environment
+* `Build`s now return `Platform` information
+* `Action`s now return `Background` information
+* `CommitDetails` now return `Branch` and `PullRequest`
+* `BuildOpts` method for building a project with arbitrary parameters
+
+Bug fixes:
+
+* Fix issue with paginating queries returning a 401
+* Actually send build parameters for `ParameterizedBuild`
+* Fix feature flag parsing to not cause a null pointer panic
+
 ## 0.2.0 - 2018-03-10
 
 Backwards incomptabile changes:
