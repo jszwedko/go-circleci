@@ -3,7 +3,6 @@ package circleci
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -397,26 +396,42 @@ func (c *Client) BuildOpts(account, repo, branch string, opts map[string]interfa
 	return build, nil
 }
 
-// BuildByProject triggers a build by project (this is the only way to trigger a build for project using Circle 2.1)
+// BuildByProjectBranch triggers a build by project (this is the only way to trigger a build for project using Circle
+// 2.1) by branch
+//
 // NOTE: this endpoint is only available in the CircleCI API v1.1. in order to call it, you must instantiate the Client
 // object with the following value for BaseURL: &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1.1/"}
-func (c *Client) BuildByProject(vcsType VcsType, account string, repo string, branch string, revision string, tag string) error {
-	if tag != "" && (branch != "" || revision != "") {
-		return errors.New("cannot specify tag parameter alongside branch or revision")
-	}
+func (c *Client) BuildByProjectBranch(vcsType VcsType, account string, repo string, branch string) error {
+	return c.buildProject(vcsType, account, repo, map[string]interface{}{
+		"branch": branch,
+	})
+}
 
+// BuildByProjectRevision triggers a build by project (this is the only way to trigger a build for project using Circle
+// 2.1) by revision
+//
+// NOTE: this endpoint is only available in the CircleCI API v1.1. in order to call it, you must instantiate the Client
+// object with the following value for BaseURL: &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1.1/"}
+func (c *Client) BuildByProjectRevision(vcsType VcsType, account string, repo string, revision string) error {
+	return c.buildProject(vcsType, account, repo, map[string]interface{}{
+		"revision": revision,
+	})
+
+}
+
+// BuildByProjectTag triggers a build by project (this is the only way to trigger a build for project using Circle 2.1)
+// using a tag reference
+//
+// NOTE: this endpoint is only available in the CircleCI API v1.1. in order to call it, you must instantiate the Client
+// object with the following value for BaseURL: &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1.1/"}
+func (c *Client) BuildByProjectTag(vcsType VcsType, account string, repo string, tag string) error {
+	return c.buildProject(vcsType, account, repo, map[string]interface{}{
+		"tag": tag,
+	})
+}
+
+func (c *Client) buildProject(vcsType VcsType, account string, repo string, opts map[string]interface{}) error {
 	resp := &BuildByProjectResponse{}
-
-	opts := map[string]interface{}{}
-	if branch != "" {
-		opts["branch"] = branch
-	}
-	if revision != "" {
-		opts["revision"] = revision
-	}
-	if tag != "" {
-		opts["tag"] = tag
-	}
 
 	err := c.request("POST", fmt.Sprintf("project/%s/%s/%s/build", vcsType, account, repo), resp, nil, opts)
 	if err != nil {
