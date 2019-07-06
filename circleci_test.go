@@ -678,6 +678,54 @@ func TestClient_BuildOpts(t *testing.T) {
 	}
 }
 
+func TestClient_BuildByProjectBranch(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/github/jszwedko/foo/build", func(w http.ResponseWriter, r *http.Request) {
+		testBody(t, r, `{"branch":"master"}`)
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"status": 200, "body": "Build created"}`)
+	})
+
+	err := client.BuildByProjectBranch(VcsTypeGithub, "jszwedko", "foo", "master")
+	if err != nil {
+		t.Errorf("Client.BuildByProjectBranch(github, jszwedko, foo, master) returned error: %v", err)
+	}
+}
+
+func TestClient_BuildByProjectRevision(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/github/jszwedko/foo/build", func(w http.ResponseWriter, r *http.Request) {
+		testBody(t, r, `{"revision":"SHA"}`)
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"status": 200, "body": "Build created"}`)
+	})
+
+	err := client.BuildByProjectRevision(VcsTypeGithub, "jszwedko", "foo", "SHA")
+	if err != nil {
+		t.Errorf("Client.BuildByProjectRevision(github, jszwedko, foo, SHA) returned error: %v", err)
+	}
+}
+
+func TestClient_BuildByProjectTag(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/github/jszwedko/foo/build", func(w http.ResponseWriter, r *http.Request) {
+		testBody(t, r, `{"tag":"v0.0.1"}`)
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"status": 200, "body": "Build created"}`)
+	})
+
+	err := client.BuildByProjectTag(VcsTypeGithub, "jszwedko", "foo", "v0.0.1")
+	if err != nil {
+		t.Errorf("Client.BuildByProjectTag(github, jszwedko, foo, v0.0.1) returned error: %v", err)
+	}
+}
+
 func TestClient_RetryBuild(t *testing.T) {
 	setup()
 	defer teardown()

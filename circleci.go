@@ -396,6 +396,54 @@ func (c *Client) BuildOpts(account, repo, branch string, opts map[string]interfa
 	return build, nil
 }
 
+// BuildByProjectBranch triggers a build by project (this is the only way to trigger a build for project using Circle
+// 2.1) by branch
+//
+// NOTE: this endpoint is only available in the CircleCI API v1.1. in order to call it, you must instantiate the Client
+// object with the following value for BaseURL: &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1.1/"}
+func (c *Client) BuildByProjectBranch(vcsType VcsType, account string, repo string, branch string) error {
+	return c.buildProject(vcsType, account, repo, map[string]interface{}{
+		"branch": branch,
+	})
+}
+
+// BuildByProjectRevision triggers a build by project (this is the only way to trigger a build for project using Circle
+// 2.1) by revision
+//
+// NOTE: this endpoint is only available in the CircleCI API v1.1. in order to call it, you must instantiate the Client
+// object with the following value for BaseURL: &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1.1/"}
+func (c *Client) BuildByProjectRevision(vcsType VcsType, account string, repo string, revision string) error {
+	return c.buildProject(vcsType, account, repo, map[string]interface{}{
+		"revision": revision,
+	})
+
+}
+
+// BuildByProjectTag triggers a build by project (this is the only way to trigger a build for project using Circle 2.1)
+// using a tag reference
+//
+// NOTE: this endpoint is only available in the CircleCI API v1.1. in order to call it, you must instantiate the Client
+// object with the following value for BaseURL: &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1.1/"}
+func (c *Client) BuildByProjectTag(vcsType VcsType, account string, repo string, tag string) error {
+	return c.buildProject(vcsType, account, repo, map[string]interface{}{
+		"tag": tag,
+	})
+}
+
+func (c *Client) buildProject(vcsType VcsType, account string, repo string, opts map[string]interface{}) error {
+	resp := &BuildByProjectResponse{}
+
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%s/build", vcsType, account, repo), resp, nil, opts)
+	if err != nil {
+		return err
+	}
+
+	if resp.Status != 200 || resp.Body != "Build created" {
+		return fmt.Errorf("unexpected build info in response %+v", resp)
+	}
+	return nil
+}
+
 // RetryBuild triggers a retry of the specified build
 // Returns the new build information
 func (c *Client) RetryBuild(account, repo string, buildNum int) (*Build, error) {
@@ -989,6 +1037,21 @@ type CheckoutKey struct {
 	Login       *string   `json:"login"` // github username if this is a user key
 	Preferred   bool      `json:"preferred"`
 	Time        time.Time `json:"time"` // time key was created
+}
+
+// VcsType represents the version control system type
+type VcsType string
+
+// VcsType constants (github and bitbucket are the currently supported choices)
+const (
+	VcsTypeGithub    VcsType = "github"
+	VcsTypeBitbucket VcsType = "bitbucket"
+)
+
+// BuildByProjectResponse is the shape of the response body from the trigger build by project endpoint
+type BuildByProjectResponse struct {
+	Status int    `json:"status"`
+	Body   string `json:"body"`
 }
 
 // clean up project returned from API by:
