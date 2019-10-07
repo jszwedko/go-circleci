@@ -726,6 +726,27 @@ func TestClient_BuildByProjectTag(t *testing.T) {
 	}
 }
 
+func TestClient_BuildByProject(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/project/github/jszwedko/foo/build", func(w http.ResponseWriter, r *http.Request) {
+		testBody(t, r, `{"branch":"pull/1234","revision":"8afbae7ec63b2b0f2886740d03161dbb08ba55f5"}`)
+		testMethod(t, r, "POST")
+		fmt.Fprint(w, `{"status": 200, "body": "Build created"}`)
+	})
+
+	opts := map[string]interface{}{
+		"revision": "8afbae7ec63b2b0f2886740d03161dbb08ba55f5",
+		"branch":   "pull/1234",
+	}
+
+	err := client.BuildByProject(VcsTypeGithub, "jszwedko", "foo", opts)
+	if err != nil {
+		t.Errorf("Client.BuildByProjectTag(github, jszwedko, foo, opts) returned error: %v", err)
+	}
+}
+
 func TestClient_RetryBuild(t *testing.T) {
 	setup()
 	defer teardown()

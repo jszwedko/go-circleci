@@ -430,6 +430,22 @@ func (c *Client) BuildByProjectTag(vcsType VcsType, account string, repo string,
 	})
 }
 
+// BuildByProject triggers a build by project (this is the only way to trigger a build for project using Circle 2.1)
+// you can set revision and/or tag/branch
+// this is useful if you need to trigger a build from a PR froma fork, in which you need to set the revision and the
+// branch in this format `pull/PR_NUMBER`
+// ie.:
+//  map[string]interface{}{
+// 		"revision": "8afbae7ec63b2b0f2786740d03161dbb08ba55f5",
+//		"branch"  : "pull/1234",
+// 	})
+//
+// NOTE: this endpoint is only available in the CircleCI API v1.1. in order to call it, you must instantiate the Client
+// object with the following value for BaseURL: &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1.1/"}
+func (c *Client) BuildByProject(vcsType VcsType, account string, repo string, opts map[string]interface{}) error {
+	return c.buildProject(vcsType, account, repo, opts)
+}
+
 func (c *Client) buildProject(vcsType VcsType, account string, repo string, opts map[string]interface{}) error {
 	resp := &BuildByProjectResponse{}
 
