@@ -376,7 +376,7 @@ func TestClient_GetProject_urlDecodeBranches(t *testing.T) {
 	defer teardown()
 	mux.HandleFunc("/projects", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		// using Fprintf instead Fprint becouse `go vet` complains about a possible intention to use a formatted string
+		// using Fprintf instead Fprint because `go vet` complains about a possible intention to use a formatted string
 		fmt.Fprintf(w, `[
 			{"username": "jszwedko", "reponame": "bar", "branches": {"apiv1%%2E1": {}}}
 		]`)
