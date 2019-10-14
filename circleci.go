@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	defaultBaseURL = &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1/"}
+	defaultBaseURL = &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1.1/"}
 	defaultLogger  = log.New(os.Stderr, "", log.LstdFlags)
 )
 
