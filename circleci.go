@@ -298,8 +298,8 @@ func (c *Client) ListRecentBuilds(limit, offset int) ([]*Build, error) {
 // ListRecentBuildsForProject fetches the list of recent builds for the given repository
 // The status and branch parameters are used to further filter results if non-empty
 // If limit is -1, fetches all builds
-func (c *Client) ListRecentBuildsForProject(account, repo, branch, status string, limit, offset int) ([]*Build, error) {
-	path := fmt.Sprintf("project/%s/%s", account, repo)
+func (c *Client) ListRecentBuildsForProject(vcsType VcsType, account, repo, branch, status string, limit, offset int) ([]*Build, error) {
+	path := fmt.Sprintf("project/%s/%s/%s", vcsType, account, repo)
 	if branch != "" {
 		path = fmt.Sprintf("%s/tree/%s", path, branch)
 	}
