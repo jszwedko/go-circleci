@@ -380,7 +380,7 @@ func (c *Client) ListWorkflowV2Jobs(id string, paginationToken *string) ([]*Work
 	// TODO if paginationToken is not nil, fetch the next page
 
 	jobListing := &pagedJobs{}
-	err := c.request("GET", fmt.Sprintf("workflow/%s/jobs", id), jobListing, nil, nil, apiV2)
+	err := c.request("GET", fmt.Sprintf("workflow/%s/job", id), jobListing, nil, nil, apiV2)
 	if err != nil {
 		return nil, nil, err
 	}
