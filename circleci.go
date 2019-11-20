@@ -920,9 +920,9 @@ type WorkflowJob struct {
 	Name         string     `json:"name"`         // : "js_build",
 	ProjectSlug  string     `json:"project_slug"` // : "github/myorg/test",
 	Status       string     `json:"status"`       // : "success",
-	StopTime     *time.Time `json:"stop_time"`    // : "2019-06-20T23:19:50Z",
+	StopTime     *time.Time `json:"stopped_at"`    // : "2019-06-20T23:19:50Z",
 	Type         string     `json:"type"`         // : "build",
-	StartTime    time.Time  `json:"start_time"`   // : "2019-06-20T23:18:04Z"
+	StartTime    time.Time  `json:"started_at"`   // : "2019-06-20T23:18:04Z"
 }
 
 // Build represents the details of a build
