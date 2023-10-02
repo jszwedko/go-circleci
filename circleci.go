@@ -149,6 +149,11 @@ func (c *Client) request(method, path string, responseStruct interface{}, params
 			return &APIError{HTTPStatusCode: resp.StatusCode, Message: "unable to parse response: %s"}
 		}
 
+		if resp.StatusCode == 429 {
+			retryAfter := resp.Header.Get("Retry-After")
+			return &APIError{HTTPStatusCode: resp.StatusCode, Message: fmt.Sprintf("Rate-Limit exceeded, retry after: %s", retryAfter)}
+		}
+
 		if len(body) > 0 {
 			message := struct {
 				Message string `json:"message"`
@@ -622,7 +627,7 @@ func (c *Client) DeleteCheckoutKey(account, repo, fingerprint string) error {
 // AddHerokuKey associates a Heroku key with the user's API token to allow
 // CircleCI to deploy to Heroku on your behalf
 //
-// The API token being used must be a user API token
+// # The API token being used must be a user API token
 //
 // NOTE: It doesn't look like there is currently a way to dissaccociate your
 // Heroku key, so use with care
