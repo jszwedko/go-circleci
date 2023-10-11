@@ -190,6 +190,21 @@ func TestClient_request_noErrorMessage(t *testing.T) {
 	testAPIError(t, err, http.StatusInternalServerError, "")
 }
 
+func TestClient_request_rateLimitExceeded(t *testing.T) {
+	setup()
+	defer teardown()
+	path := "/me"
+	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Add("Retry-After", "20")
+		w.WriteHeader(http.StatusTooManyRequests)
+		fmt.Fprint(w, `{"message":"Rate-Limit exceeded, retry after: 20"}`)
+	})
+
+	err := client.request(http.MethodGet, path, &User{}, nil, nil)
+	testAPIError(t, err, http.StatusTooManyRequests, "Rate-Limit exceeded, retry after: 20")
+}
+
 func TestClient_Me(t *testing.T) {
 	setup()
 	defer teardown()
