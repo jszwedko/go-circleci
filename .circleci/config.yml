@@ -6,7 +6,6 @@ jobs:
     executor:
       name: go/default
       tag: '1.21'
-    working_directory: /go/src/github.com/jszwedko/go-circleci
     steps:
       - checkout
       - go/load-cache
