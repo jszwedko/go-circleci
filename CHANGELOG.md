@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## 0.4.0 - 2023-01-27
+
+Added:
+
+* `UnfollowProject` function added to unfollow projects
+* `BuildByProjectBranch` function added to build a project for a specific branch
+* `BuildByProjectRevision` function added to build a project for a specific revision
+* `BuildByProjectTag` function added to build a project for a specific tag
+
+Bug fixes:
+
+* 429s from CircleCI are now handled gracefully by returning an error to the user
+
 ## 0.3.0 - 2019-06-29
 
 Added:
