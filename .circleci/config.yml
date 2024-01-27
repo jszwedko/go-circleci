@@ -8,9 +8,7 @@ jobs:
       tag: '1.21'
     steps:
       - checkout
-      - go/load-cache
       - go/mod-download
-      - go/save-cache
       - go/test:
           covermode: atomic
           failfast: true
