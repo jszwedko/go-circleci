@@ -5,7 +5,7 @@ jobs:
     environment:
       TEST_RESULTS: /tmp/test-results
     docker:
-    - image: circleci/golang:1.10
+    - image: cimg/golang:1.21
     steps:
     - checkout
     - run: go vet ./...
