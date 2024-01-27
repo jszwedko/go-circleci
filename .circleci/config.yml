@@ -1,12 +1,21 @@
-version: 2
+version: 2.1
+orbs:
+    go: circleci/go@1.11.0
 jobs:
   build:
-    working_directory: /go/src/github.com/jszwedko/go-circleci
-    environment:
-      TEST_RESULTS: /tmp/test-results
-    docker:
-    - image: circleci/golang:1.10
+    executor:
+      name: go/default
+      tag: '1.21'
     steps:
-    - checkout
-    - run: go vet ./...
-    - run: go test ./...
+      - checkout
+      - go/mod-download
+      - go/test:
+          covermode: atomic
+          failfast: true
+          no_output_timeout: 15m
+          race: true
+          timeout: 15m
+workflows:
+  main:
+    jobs:
+      - build
