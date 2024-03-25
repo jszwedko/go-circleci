@@ -20,8 +20,18 @@ const (
 )
 
 var (
-	defaultBaseURL = &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1/"}
-	defaultLogger  = log.New(os.Stderr, "", log.LstdFlags)
+	defaultBaseURLV1 = &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v1/"}
+	defaultBaseURLV2 = &url.URL{Host: "circleci.com", Scheme: "https", Path: "/api/v2/"}
+	defaultLogger    = log.New(os.Stderr, "", log.LstdFlags)
+)
+
+// apiVersion flips requsets between v1 and v2 of the CircleCI API
+type apiVersion int
+
+const (
+	unknownVersion apiVersion = iota
+	apiV1
+	apiV2
 )
 
 // Logger is a minimal interface for injecting custom logging logic for debug logs
@@ -43,6 +53,7 @@ func (e *APIError) Error() string {
 // Its zero value is a usable client for examining public CircleCI repositories
 type Client struct {
 	BaseURL    *url.URL     // CircleCI API endpoint (defaults to DefaultEndpoint)
+	BaseURLV2  *url.URL     // CircleCI API endpoint (defaults to DefaultEndpoint)
 	Token      string       // CircleCI API token (needed for private repositories and mutative actions)
 	HTTPClient *http.Client // HTTPClient to use for connecting to CircleCI (defaults to http.DefaultClient)
 
@@ -50,12 +61,32 @@ type Client struct {
 	Logger Logger // logger to send debug messages on (if enabled), defaults to logging to stderr with the standard flags
 }
 
-func (c *Client) baseURL() *url.URL {
-	if c.BaseURL == nil {
-		return defaultBaseURL
+func (c *Client) baseURL(v apiVersion) *url.URL {
+	var bURL *url.URL
+	switch v {
+	case apiV1:
+		if c.BaseURL == nil {
+			bURL = defaultBaseURLV1
+			break
+		}
+		bURL = c.BaseURL
+	case apiV2:
+		if c.BaseURLV2 == nil {
+			bURL = defaultBaseURLV2
+			break
+		}
+		bURL = c.BaseURLV2
+	default:
+	}
+	return bURL
+}
+
+func (c *Client) baseURLV2() *url.URL {
+	if c.BaseURLV2 == nil {
+		return defaultBaseURLV2
 	}
 
-	return c.BaseURL
+	return c.BaseURLV2
 }
 
 func (c *Client) client() *http.Client {
@@ -106,13 +137,14 @@ type nopCloser struct {
 
 func (n nopCloser) Close() error { return nil }
 
-func (c *Client) request(method, path string, responseStruct interface{}, params url.Values, bodyStruct interface{}) error {
+func (c *Client) request(method, path string, responseStruct interface{},
+	params url.Values, bodyStruct interface{}, version apiVersion) error {
 	if params == nil {
 		params = url.Values{}
 	}
 	params.Set("circle-token", c.Token)
 
-	u := c.baseURL().ResolveReference(&url.URL{Path: path, RawQuery: params.Encode()})
+	u := c.baseURL(version).ResolveReference(&url.URL{Path: path, RawQuery: params.Encode()})
 
 	c.debug("building request for %s", u)
 
@@ -185,7 +217,7 @@ func (c *Client) request(method, path string, responseStruct interface{}, params
 func (c *Client) Me() (*User, error) {
 	user := &User{}
 
-	err := c.request("GET", "me", user, nil, nil)
+	err := c.request("GET", "me", user, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +229,7 @@ func (c *Client) Me() (*User, error) {
 func (c *Client) ListProjects() ([]*Project, error) {
 	projects := []*Project{}
 
-	err := c.request("GET", "projects", &projects, nil, nil)
+	err := c.request("GET", "projects", &projects, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -214,19 +246,19 @@ func (c *Client) ListProjects() ([]*Project, error) {
 // EnableProject enables a project - generates a deploy SSH key used to checkout the Github repo.
 // The Github user tied to the Circle API Token must have "admin" access to the repo.
 func (c *Client) EnableProject(account, repo string) error {
-	return c.request("POST", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil)
+	return c.request("POST", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil, apiV1)
 }
 
 // DisableProject disables a project
 func (c *Client) DisableProject(account, repo string) error {
-	return c.request("DELETE", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil)
+	return c.request("DELETE", fmt.Sprintf("project/%s/%s/enable", account, repo), nil, nil, nil, apiV1)
 }
 
 // FollowProject follows a project
 func (c *Client) FollowProject(account, repo string) (*Project, error) {
 	project := &Project{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/follow", account, repo), project, nil, nil)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/follow", account, repo), project, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +326,7 @@ func (c *Client) recentBuilds(path string, params url.Values, limit, offset int)
 		params.Set("limit", strconv.Itoa(l))
 		params.Set("offset", strconv.Itoa(offset))
 
-		err := c.request("GET", path, &builds, params, nil)
+		err := c.request("GET", path, &builds, params, nil, apiV1)
 		if err != nil {
 			return nil, err
 		}
@@ -337,7 +369,7 @@ func (c *Client) ListRecentBuildsForProject(account, repo, branch, status string
 func (c *Client) GetBuild(account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d", account, repo, buildNum), build, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d", account, repo, buildNum), build, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -345,11 +377,42 @@ func (c *Client) GetBuild(account, repo string, buildNum int) (*Build, error) {
 	return build, nil
 }
 
+// GetWorkflowV2 gets workflow details for a specific run of a workflow based on its UUID identifier
+func (c *Client) GetWorkflowV2(id string) (*WorkflowV2, error) {
+	wf := &WorkflowV2{}
+	err := c.request("GET", fmt.Sprintf("workflow/%s", id), wf, nil, nil, apiV2)
+	if err != nil {
+		return nil, err
+	}
+	return wf, nil
+}
+
+// ListWorkflowV2Jobs lists all the jobs in a workflow. If pagination is
+// necessary, the string returned will be a pagination token. Calling this
+// function again with the pagination token will get the next page of results.
+// When the pagination token returned is nil, all jobs in the workflow have been
+// fetched.
+func (c *Client) ListWorkflowV2Jobs(id string, paginationToken *string) ([]*WorkflowJob, *string, error) {
+	type pagedJobs struct {
+		NextPageToken *string        `json:"next_page_token"`
+		Jobs          []*WorkflowJob `json:"items"`
+	}
+
+	// TODO if paginationToken is not nil, fetch the next page
+
+	jobListing := &pagedJobs{}
+	err := c.request("GET", fmt.Sprintf("workflow/%s/job", id), jobListing, nil, nil, apiV2)
+	if err != nil {
+		return nil, nil, err
+	}
+	return jobListing.Jobs, nil, nil
+}
+
 // ListBuildArtifacts fetches the build artifacts for the given build
 func (c *Client) ListBuildArtifacts(account, repo string, buildNum int) ([]*Artifact, error) {
 	artifacts := []*Artifact{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d/artifacts", account, repo, buildNum), &artifacts, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d/artifacts", account, repo, buildNum), &artifacts, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +426,7 @@ func (c *Client) ListTestMetadata(account, repo string, buildNum int) ([]*TestMe
 		Tests []*TestMetadata `json:"tests"`
 	}{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d/tests", account, repo, buildNum), &metadata, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/%d/tests", account, repo, buildNum), &metadata, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +441,7 @@ func (c *Client) ListTestMetadata(account, repo string, buildNum int) ([]*TestMe
 func (c *Client) AddSSHUser(account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/ssh-users", account, repo, buildNum), build, nil, nil)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/ssh-users", account, repo, buildNum), build, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -409,7 +472,7 @@ func (c *Client) ParameterizedBuild(account, repo, branch string, buildParameter
 func (c *Client) BuildOpts(account, repo, branch string, opts map[string]interface{}) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, opts)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/tree/%s", account, repo, branch), build, nil, opts, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +533,7 @@ func (c *Client) buildProject(vcsType VcsType, account string, repo string, opts
 func (c *Client) RetryBuild(account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/retry", account, repo, buildNum), build, nil, nil)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/retry", account, repo, buildNum), build, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -483,7 +546,7 @@ func (c *Client) RetryBuild(account, repo string, buildNum int) (*Build, error) 
 func (c *Client) CancelBuild(account, repo string, buildNum int) (*Build, error) {
 	build := &Build{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/cancel", account, repo, buildNum), build, nil, nil)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/%d/cancel", account, repo, buildNum), build, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +561,7 @@ func (c *Client) ClearCache(account, repo string) (string, error) {
 		Status string `json:"status"`
 	}{}
 
-	err := c.request("DELETE", fmt.Sprintf("project/%s/%s/build-cache", account, repo), status, nil, nil)
+	err := c.request("DELETE", fmt.Sprintf("project/%s/%s/build-cache", account, repo), status, nil, nil, apiV1)
 	if err != nil {
 		return "", err
 	}
@@ -511,7 +574,7 @@ func (c *Client) ClearCache(account, repo string) (string, error) {
 func (c *Client) AddEnvVar(account, repo, name, value string) (*EnvVar, error) {
 	envVar := &EnvVar{}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/envvar", account, repo), envVar, nil, &EnvVar{Name: name, Value: value})
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/envvar", account, repo), envVar, nil, &EnvVar{Name: name, Value: value}, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -524,7 +587,7 @@ func (c *Client) AddEnvVar(account, repo, name, value string) (*EnvVar, error) {
 func (c *Client) ListEnvVars(account, repo string) ([]EnvVar, error) {
 	envVar := []EnvVar{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/envvar", account, repo), &envVar, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/envvar", account, repo), &envVar, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -534,7 +597,7 @@ func (c *Client) ListEnvVars(account, repo string) ([]EnvVar, error) {
 
 // DeleteEnvVar deletes the specified environment variable from the project
 func (c *Client) DeleteEnvVar(account, repo, name string) error {
-	return c.request("DELETE", fmt.Sprintf("project/%s/%s/envvar/%s", account, repo, name), nil, nil, nil)
+	return c.request("DELETE", fmt.Sprintf("project/%s/%s/envvar/%s", account, repo, name), nil, nil, nil, apiV1)
 }
 
 // AddSSHKey adds a new SSH key to the project
@@ -543,7 +606,7 @@ func (c *Client) AddSSHKey(account, repo, hostname, privateKey string) error {
 		Hostname   string `json:"hostname"`
 		PrivateKey string `json:"private_key"`
 	}{hostname, privateKey}
-	return c.request("POST", fmt.Sprintf("project/%s/%s/ssh-key", account, repo), nil, nil, key)
+	return c.request("POST", fmt.Sprintf("project/%s/%s/ssh-key", account, repo), nil, nil, key, apiV1)
 }
 
 // GetActionOutputs fetches the output for the given action
@@ -580,7 +643,7 @@ func (c *Client) GetActionOutputs(a *Action) ([]*Output, error) {
 func (c *Client) ListCheckoutKeys(account, repo string) ([]*CheckoutKey, error) {
 	checkoutKeys := []*CheckoutKey{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), &checkoutKeys, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), &checkoutKeys, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -599,7 +662,7 @@ func (c *Client) CreateCheckoutKey(account, repo, keyType string) (*CheckoutKey,
 		KeyType string `json:"type"`
 	}{KeyType: keyType}
 
-	err := c.request("POST", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), checkoutKey, nil, body)
+	err := c.request("POST", fmt.Sprintf("project/%s/%s/checkout-key", account, repo), checkoutKey, nil, body, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -611,7 +674,7 @@ func (c *Client) CreateCheckoutKey(account, repo, keyType string) (*CheckoutKey,
 func (c *Client) GetCheckoutKey(account, repo, fingerprint string) (*CheckoutKey, error) {
 	checkoutKey := &CheckoutKey{}
 
-	err := c.request("GET", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), &checkoutKey, nil, nil)
+	err := c.request("GET", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), &checkoutKey, nil, nil, apiV1)
 	if err != nil {
 		return nil, err
 	}
@@ -621,7 +684,7 @@ func (c *Client) GetCheckoutKey(account, repo, fingerprint string) (*CheckoutKey
 
 // DeleteCheckoutKey fetches the checkout key for the given project by fingerprint
 func (c *Client) DeleteCheckoutKey(account, repo, fingerprint string) error {
-	return c.request("DELETE", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), nil, nil, nil)
+	return c.request("DELETE", fmt.Sprintf("project/%s/%s/checkout-key/%s", account, repo, fingerprint), nil, nil, nil, apiV1)
 }
 
 // AddHerokuKey associates a Heroku key with the user's API token to allow
@@ -636,7 +699,7 @@ func (c *Client) AddHerokuKey(key string) error {
 		APIKey string `json:"apikey"`
 	}{APIKey: key}
 
-	return c.request("POST", "/user/heroku-key", nil, nil, body)
+	return c.request("POST", "/user/heroku-key", nil, nil, body, apiV1)
 }
 
 // EnvVar represents an environment variable
@@ -894,7 +957,8 @@ type BuildUser struct {
 	Name   *string `json:"name"`
 }
 
-// Workflow represents the details of the workflow for a build
+// Workflow represents the details of a workflow for a build as returned by v1.1
+// of the CircleAPI.
 type Workflow struct {
 	JobName        string    `json:"job_name"`
 	JobId          string    `json:"job_id"`
@@ -902,6 +966,32 @@ type Workflow struct {
 	WorkflowId     string    `json:"workflow_id"`
 	WorkspaceId    string    `json:"workspace_id"`
 	WorkflowName   string    `json:"workflow_name"`
+}
+
+// WorkflowV2 represents a specific Workflow instance as returned by v2 of the
+// CircleCI API. This is a single run of a workflow
+type WorkflowV2 struct {
+	CreatedAt      time.Time `json:"created_at"`      // "2019-06-20T23:15:02Z",
+	ID             string    `json:"id"`              // "b18e18a4-7a3a-4dbd-86a2-41cffd846296",
+	Name           string    `json:"name"`            // "funkyflow",
+	PipelineID     string    `json:"pipeline_id"`     // "dc78c4c0-9902-4a32-b4b9-fa087ff95aef",
+	PipelineNumber int       `json:"pipeline_number"` // 2266,
+	ProjectSlug    string    `json:"project_slug"`    // "github/myorg/test",
+	Status         string    `json:"status"`          // "success",
+	StoppedAt      time.Time `json:"stopped_at"`      // "2019-06-20T23:22:50Z"
+}
+
+// WorkflowJob represents a job instance that exists within a Workflow.
+type WorkflowJob struct {
+	Dependencies []string   `json:"dependencies"` // : [ "769958d6-a7c4-42bc-8abc-fea4000548be" ],
+	JobNumber    int        `json:"job_number"`   // : 16669,
+	ID           string     `json:"id"`           // : "0bac254d-94f6-4faa-85a6-5a5f2d8f84c5",
+	Name         string     `json:"name"`         // : "js_build",
+	ProjectSlug  string     `json:"project_slug"` // : "github/myorg/test",
+	Status       string     `json:"status"`       // : "success",
+	StopTime     *time.Time `json:"stopped_at"`    // : "2019-06-20T23:19:50Z",
+	Type         string     `json:"type"`         // : "build",
+	StartTime    time.Time  `json:"started_at"`   // : "2019-06-20T23:18:04Z"
 }
 
 // Build represents the details of a build
